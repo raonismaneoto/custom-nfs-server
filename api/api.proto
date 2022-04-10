@@ -9,6 +9,7 @@ service NFSS {
   rpc UnMount (UnMountRequest) returns (Empty) {}
   rpc Read (ReadRequest) returns (stream ReadResponse) {}
   rpc Save (stream SaveRequest) returns (Empty) {}
+  rpc Remove (RemoveRequest) returns (Empty) {}
 }
 
 message Empty {
@@ -40,5 +41,11 @@ message ReadResponse {
 
 message SaveRequest {
   string id = 1;
-  bytes content = 2;
+  string path = 2;
+  bytes content = 3;
+}
+
+message RemoveRequest {
+  string id = 1;
+  string path = 2;
 }

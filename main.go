@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/raonismaneoto/custom-nfs-server/api"
+	"github.com/raonismaneoto/custom-nfs-server/server"
 	"google.golang.org/grpc"
 )
 
@@ -16,13 +17,14 @@ func main() {
 		log.Fatalf("Error %v", err)
 	}
 
-	s := grpc.NewServer()
-	api.RegisterNFSSServer(s, &api.Handler{})
+	gs := grpc.NewServer()
+	ns := server.New("~/custom-nfs/")
+	api.RegisterNFSSServer(gs, api.New(ns))
 
-	log.Println("NodeServer listening at %v", lis.Addr())
+	log.Println("NFSS listening at %v", lis.Addr())
 
-	log.Println("going to start grpc NodeServer listener")
-	if err := s.Serve(lis); err != nil {
+	log.Println("going to start grpc Server listener")
+	if err := gs.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
 

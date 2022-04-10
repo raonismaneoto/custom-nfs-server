@@ -1,15 +1,24 @@
 package api
 
 import (
+	"bytes"
 	context "context"
+	"encoding/json"
 	"io"
 	"log"
 
+	"github.com/raonismaneoto/custom-nfs-server/models"
 	"github.com/raonismaneoto/custom-nfs-server/server"
 )
 
 type Handler struct {
 	s *server.Server
+}
+
+const MaxBytesPerResponse int32 = 10000
+
+func New(server *server.Server) *Handler{
+	return &Handler{s : server}
 }
 
 func (h *Handler) Save(srv NFSS_SaveServer) (error) {
@@ -33,7 +42,7 @@ func (h *Handler) Save(srv NFSS_SaveServer) (error) {
 			continue
 		}
 
-		err = h.s.Save(req.Content)
+		err = h.s.Save(req.Id, req.Path ,req.Content)
 		if err != nil {
 			log.Printf("receive error %v", err)
 			continue
@@ -57,6 +66,34 @@ func (h *Handler) UnMount(ctx context.Context, request *UnMountRequest) (*Empty,
 }
 
 func (h *Handler) Read(request *ReadRequest, srv NFSS_ReadServer) (error) {
-	log.Println("Read received.")
-	return srv.Send(&ReadResponse{})
+	ctx := srv.Context()
+
+	var fm models.Metadata
+	err := json.NewDecoder(bytes.NewReader(request.MetaData)).Decode(&fm)
+	if err != nil {
+
+	}
+
+	chuncks := fm.Size / MaxBytesPerResponse
+
+	for i := int32(0); i <= chuncks; i++ {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		content, err := h.s.Read(request.Id, fm.Path, i*MaxBytesPerResponse, MaxBytesPerResponse)
+		if err != nil {
+
+		}
+		
+		resp := ReadResponse{
+			Content: content,
+		}
+
+		if err := srv.Send(&resp); err != nil {
+			log.Printf("send error %v", err)
+		}
+	}
 }
