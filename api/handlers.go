@@ -11,11 +11,11 @@ import (
 	"github.com/raonismaneoto/custom-nfs-server/server"
 )
 
+const MaxBytesPerResponse int32 = 10000
+
 type Handler struct {
 	s *server.Server
 }
-
-const MaxBytesPerResponse int32 = 10000
 
 func New(server *server.Server) *Handler{
 	return &Handler{s : server}
@@ -85,7 +85,8 @@ func (h *Handler) Read(request *ReadRequest, srv NFSS_ReadServer) (error) {
 
 		content, err := h.s.Read(request.Id, fm.Path, i*MaxBytesPerResponse, MaxBytesPerResponse)
 		if err != nil {
-
+			log.Println("error while reading file content: %v", err)
+			return err
 		}
 		
 		resp := ReadResponse{
@@ -96,4 +97,11 @@ func (h *Handler) Read(request *ReadRequest, srv NFSS_ReadServer) (error) {
 			log.Printf("send error %v", err)
 		}
 	}
+
+	return nil
+}
+
+func (h *Handler) Remove(ctx context.Context, request *RemoveRequest) (*Empty, error) {
+	log.Println("Ping received.")
+	return &Empty{}, nil
 }

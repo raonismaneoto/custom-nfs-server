@@ -36,13 +36,17 @@ func (s *Server) Read(id string, path string, offset, limit int32) ([]byte, erro
 	//check if the file exists, if id is allowed to access its content and if offset and limit are ok regarding the file size
 	f, err := os.Open(path)
 	if err != nil {
-
+		log.Println("unable to open file %v", path)
+		log.Println(err)
+		return nil, err
 	}
 
 	content := make([]byte, limit)
 
 	if _, err := f.ReadAt(content, int64(offset)); err != nil {
+		log.Println("unable to read file chunck: %v", err)
 		return nil, err
 	}
+	
 	return content, nil
 }
