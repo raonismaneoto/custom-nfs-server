@@ -1,2 +1,3 @@
 api/api.pb.go
+api/api_grpc.pb.go
 .idea
