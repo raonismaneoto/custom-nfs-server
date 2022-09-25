@@ -1,14 +1,13 @@
 package api
 
 import (
-	"bytes"
 	context "context"
-	"encoding/json"
 	"io"
+	"io/fs"
 	"log"
 	"math"
+	"os"
 
-	"github.com/raonismaneoto/custom-nfs-server/models"
 	"github.com/raonismaneoto/custom-nfs-server/server"
 )
 
@@ -45,8 +44,8 @@ func (h *Handler) Save(srv NFSS_SaveServer) error {
 
 		err = h.s.Save(req.Id, req.Path, req.Content)
 		if err != nil {
-			log.Printf("receive error %v", err)
-			continue
+			log.Printf("received error %v", err)
+			return err
 		}
 	}
 }
@@ -69,30 +68,33 @@ func (h *Handler) UnMount(ctx context.Context, request *UnMountRequest) (*Empty,
 func (h *Handler) Read(request *ReadRequest, srv NFSS_ReadServer) error {
 	ctx := srv.Context()
 
-	var fm models.Metadata
-	err := json.NewDecoder(bytes.NewReader(request.MetaData)).Decode(&fm)
-	if err != nil {
-
+	var f fs.FileInfo
+	var err error
+	if f, err = os.Stat("/home/raonismaneoto/custom-nfs/" + request.Path); err != nil {
+		log.Println("unable to open the file %v", request.Path)
+		return err
 	}
 
-	chuncks := int32(math.Ceil(fm.Size / float64(MaxBytesPerResponse)))
-
-	for i := int32(0); i <= chuncks; i++ {
+	chuncks := int32(math.Ceil(float64(f.Size()) / float64(MaxBytesPerResponse)))
+	log.Println("chunks: ", chuncks)
+	for i := int32(0); i < chuncks; i++ {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
 		}
 
-		content, err := h.s.Read(request.Id, fm.Path, i*MaxBytesPerResponse, MaxBytesPerResponse)
+		content, err := h.s.Read(request.Id, request.Path, i*MaxBytesPerResponse, MaxBytesPerResponse)
 		if err != nil {
-			log.Println("error while reading file content: %v", err)
+			log.Println("error while reading file content: ", err)
 			return err
 		}
 
 		resp := ReadResponse{
 			Content: content,
 		}
+
+		log.Println(string(content))
 
 		if err := srv.Send(&resp); err != nil {
 			log.Printf("send error %v", err)

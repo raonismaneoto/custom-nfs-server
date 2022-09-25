@@ -14,6 +14,9 @@ type Server struct {
 }
 
 func New(root string) *Server {
+	if _, err := os.Stat(root); err != nil {
+		os.Mkdir(root, 0777)
+	}
 	return &Server{
 		root: root,
 	}
@@ -74,7 +77,7 @@ func (s *Server) Read(id, path string, offset, limit int32) ([]byte, error) {
 		return nil, errors.New("Permission Denied")
 	}
 
-	f, err := os.Open(path)
+	f, err := os.Open(s.root + path)
 	if err != nil {
 		log.Println("unable to open file %v", path)
 		log.Println(err)
@@ -93,10 +96,14 @@ func (s *Server) Read(id, path string, offset, limit int32) ([]byte, error) {
 		return nil, errors.New("the file size is smaller than or equal to the offset")
 	}
 
+	if int32(stat.Size()) < limit {
+		limit = int32(stat.Size())
+	}
+
 	content := make([]byte, limit)
 
 	if _, err := f.ReadAt(content, int64(offset)); err != nil {
-		log.Println("unable to read file chunck: %v", err)
+		log.Println("unable to read file chunck: ", err)
 		return nil, err
 	}
 

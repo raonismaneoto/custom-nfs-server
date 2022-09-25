@@ -32,7 +32,7 @@ message UnMountRequest {
 
 message ReadRequest {
   string id = 1;
-  bytes metaData = 2;
+  string path = 2;
 }
 
 message ReadResponse {
