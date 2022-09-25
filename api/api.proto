@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package grpc_api;
+package api;
 option go_package = "github.com/raonismaneoto/custom-nfs-server/api";
 
 service NFSS {

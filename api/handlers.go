@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"log"
+	"math"
 
 	"github.com/raonismaneoto/custom-nfs-server/models"
 	"github.com/raonismaneoto/custom-nfs-server/server"
@@ -17,11 +18,11 @@ type Handler struct {
 	s *server.Server
 }
 
-func New(server *server.Server) *Handler{
-	return &Handler{s : server}
+func New(server *server.Server) *Handler {
+	return &Handler{s: server}
 }
 
-func (h *Handler) Save(srv NFSS_SaveServer) (error) {
+func (h *Handler) Save(srv NFSS_SaveServer) error {
 	log.Println("Save call received.")
 	ctx := srv.Context()
 
@@ -42,7 +43,7 @@ func (h *Handler) Save(srv NFSS_SaveServer) (error) {
 			continue
 		}
 
-		err = h.s.Save(req.Id, req.Path ,req.Content)
+		err = h.s.Save(req.Id, req.Path, req.Content)
 		if err != nil {
 			log.Printf("receive error %v", err)
 			continue
@@ -65,7 +66,7 @@ func (h *Handler) UnMount(ctx context.Context, request *UnMountRequest) (*Empty,
 	return &Empty{}, nil
 }
 
-func (h *Handler) Read(request *ReadRequest, srv NFSS_ReadServer) (error) {
+func (h *Handler) Read(request *ReadRequest, srv NFSS_ReadServer) error {
 	ctx := srv.Context()
 
 	var fm models.Metadata
@@ -74,7 +75,7 @@ func (h *Handler) Read(request *ReadRequest, srv NFSS_ReadServer) (error) {
 
 	}
 
-	chuncks := fm.Size / MaxBytesPerResponse
+	chuncks := int32(math.Ceil(fm.Size / float64(MaxBytesPerResponse)))
 
 	for i := int32(0); i <= chuncks; i++ {
 		select {
@@ -88,7 +89,7 @@ func (h *Handler) Read(request *ReadRequest, srv NFSS_ReadServer) (error) {
 			log.Println("error while reading file content: %v", err)
 			return err
 		}
-		
+
 		resp := ReadResponse{
 			Content: content,
 		}
@@ -104,4 +105,8 @@ func (h *Handler) Read(request *ReadRequest, srv NFSS_ReadServer) (error) {
 func (h *Handler) Remove(ctx context.Context, request *RemoveRequest) (*Empty, error) {
 	log.Println("Ping received.")
 	return &Empty{}, nil
+}
+
+func (h *Handler) mustEmbedUnimplementedNFSSServer() {
+
 }
