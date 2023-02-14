@@ -1,7 +1,8 @@
 package models
 
 type Metadata struct {
-	Path    string
-	OwnerID string
-	Size    float64
+	OwnerID   string
+	Size      float64
+	Dir       bool
+	AllowList []string
 }
