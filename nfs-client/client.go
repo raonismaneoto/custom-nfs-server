@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"io"
 	"log"
 	"time"
 
@@ -17,7 +18,78 @@ func NewClient(address string) *Client {
 	return &Client{address: address}
 }
 
-func (c *Client) Mount(id, path string) (*api.MountResponse, error) {
+func (c *Client) Save(id, path string, content <-chan []byte, proceed chan<- string) error {
+	lc, conn := grpcClient(c.address)
+	defer conn.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+
+	client, err := lc.Save(ctx)
+	if err != nil {
+		log.Println(err.Error())
+	}
+
+	for {
+		select {
+		case <-client.Context().Done():
+			return client.Context().Err()
+		default:
+		}
+
+		proceed <- "proceed"
+		currContent, ok := <-content
+		if !ok {
+			return nil
+		}
+
+		req := api.SaveRequest{
+			Id:      id,
+			Path:    path,
+			Content: currContent,
+		}
+
+		if err := client.Send(&req); err != nil {
+			log.Printf("send error %v", err)
+		}
+	}
+}
+
+func (c *Client) Read(id, path string, content chan<- []byte) error {
+	lc, conn := grpcClient(c.address)
+	defer conn.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+
+	srv, err := lc.Read(ctx, &api.ReadRequest{Path: path, Id: id})
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
+	for {
+		select {
+		case <-srv.Context().Done():
+			return srv.Context().Err()
+		default:
+		}
+
+		data, err := srv.Recv()
+		if err == io.EOF {
+			log.Println("exit")
+			return nil
+		}
+		if err != nil {
+			log.Printf("receive error %v", err)
+			continue
+		}
+
+		content <- data.Content
+	}
+}
+
+func (c *Client) Mount(id, path string) ([]byte, error) {
 	lc, conn := grpcClient(c.address)
 	defer conn.Close()
 
@@ -30,7 +102,7 @@ func (c *Client) Mount(id, path string) (*api.MountResponse, error) {
 		return nil, err
 	}
 
-	return response, nil
+	return response.MetaData, nil
 }
 
 func grpcClient(address string) (api.NFSSClient, *grpc.ClientConn) {
