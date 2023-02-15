@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/raonismaneoto/custom-nfs-server/models"
+	"golang.org/x/exp/slices"
 )
 
 const MetaFileSuffix string = "meta"
@@ -38,42 +39,42 @@ func (s *Server) Save(id, path string, content []byte) error {
 
 	defer f.Close()
 
-	if _, err := os.Stat(s.root + path + MetaFileSuffix); err != nil {
-		fm, err := os.OpenFile(s.root+path+MetaFileSuffix, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			log.Println("unable to open/create %v", path+MetaFileSuffix)
-			return err
-		}
+	fm, err := os.OpenFile(s.root+path+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		log.Println("unable to open/create %v", path+MetaFileSuffix)
+		return err
+	}
 
-		defer fm.Close()
+	defer fm.Close()
 
-		metadata := models.Metadata{OwnerID: id, Size: float64(len(content)),
-			Dir: len(content) == 0, AllowList: []string{}}
+	metadata := models.Metadata{OwnerID: id, Size: float64(len(content)),
+		Dir: len(content) == 0, AllowList: []string{}}
 
-		byteValue, err := ioutil.ReadAll(fm)
-		if err != nil {
-			log.Println(err.Error())
-			// return err
-		}
+	byteValue, err := ioutil.ReadAll(fm)
+	if err != nil {
+		log.Println(err.Error())
+		// return err
+	}
 
-		if err != nil || len(byteValue) == 0 {
-			json.Unmarshal(byteValue, &metadata)
-			metadata.Size = metadata.Size + float64(len(content))
-		}
+	if err == nil && len(byteValue) > 0 {
+		json.Unmarshal(byteValue, &metadata)
+		metadata.Size = metadata.Size + float64(len(content))
+	}
 
+	if id == metadata.OwnerID && !slices.Contains(metadata.AllowList, id) {
 		metadata.AllowList = append(metadata.AllowList, id)
+	}
 
-		mMd, err := json.Marshal(metadata)
+	mMd, err := json.Marshal(metadata)
 
-		if err != nil {
-			log.Println(err.Error())
-			return err
-		}
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
 
-		if _, err := fm.Write(mMd); err != nil {
-			log.Println("unable to write to %v", path+MetaFileSuffix)
-			return err
-		}
+	if _, err := fm.Write(mMd); err != nil {
+		log.Println("unable to write to %v", path+MetaFileSuffix)
+		return err
 	}
 
 	// TODO: check if it appends the content
@@ -163,23 +164,20 @@ func (s *Server) readMetaData(id, path string) (*models.Metadata, error) {
 	}
 
 	defer fm.Close()
-	log.Println("going to read the content")
-	mcontent := make([]byte, 10000)
-	if _, err := fm.Read(mcontent); err != nil {
-		log.Println("unable to read meta file: %v", err)
+
+	byteValue, err := ioutil.ReadAll(fm)
+	if err != nil {
+		log.Println(err.Error())
 		return nil, err
 	}
 
+	var md *models.Metadata
+	json.Unmarshal(byteValue, &md)
+
 	log.Println("checking for permission")
-	if !strings.Contains(string(mcontent), id) {
+	if !slices.Contains(md.AllowList, id) {
 		log.Println("The id %v does not have permission to read the file %v", id, path)
 		return nil, errors.New("Permission Denied")
-	}
-	log.Println("unmarshalling")
-	var md *models.Metadata
-	err = json.Unmarshal(mcontent, &md)
-	if err != nil {
-		return nil, err
 	}
 
 	return md, nil
