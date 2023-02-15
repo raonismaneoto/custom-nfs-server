@@ -4,13 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"os/exec"
 	"strings"
 
+	"github.com/raonismaneoto/custom-nfs-server/helpers"
 	"github.com/raonismaneoto/custom-nfs-server/nfs-cli/models"
 	client "github.com/raonismaneoto/custom-nfs-server/nfs-client"
 )
+
+const MaxBytesPerRequest int32 = 10000
 
 func main() {
 	args := os.Args[1:]
@@ -19,27 +23,15 @@ func main() {
 		panic("no command has been provided")
 	}
 
+	client, username, hostname := getCmdsCommonData()
+
 	switch command := args[0]; command {
 	case "mount":
 		if len(args) != 3 {
 			panic("Usage: mount <origin> <absolute_destination>")
 		}
 		log.Println("exec mount command")
-		client := client.NewClient(os.Getenv("server_addr"))
-		cmd := exec.Command("whoami")
-		out, err := cmd.Output()
-		if err != nil {
-			panic("error while getting username: " + err.Error())
-		}
-		username := string(out)
-		username = strings.Replace(username, "\n", "", -1)
-		cmd = exec.Command("hostname")
-		out, err = cmd.Output()
-		if err != nil {
-			panic("error while getting hostname: " + err.Error())
-		}
-		hostname := string(out)
-		hostname = strings.Replace(hostname, "\n", "", -1)
+
 		path := args[1]
 		response, err := client.Mount(username+"@"+hostname, path)
 		if err != nil {
@@ -74,7 +66,29 @@ func main() {
 		if len(args) != 2 {
 			panic("Usage: save <absolute_origin> <destination>")
 		}
-
+		content := make(chan []byte)
+		proceed := make(chan string)
+		origin := args[1]
+		destination := args[2]
+		go client.Save(username+"@"+hostname, destination, content, proceed)
+		f, err := os.Open(origin)
+		if err != nil {
+			panic("unable to open file")
+		}
+		defer f.Close()
+		stat, err := f.Stat()
+		if err != nil {
+			panic("unable to get file stat")
+		}
+		chuncks := int32(math.Ceil(float64(stat.Size()) / float64(MaxBytesPerRequest)))
+		for i := int32(0); i < chuncks; i++ {
+			<-proceed
+			data, err := helpers.ReadFileChunk(origin, i*MaxBytesPerRequest, MaxBytesPerRequest)
+			if err != nil {
+				panic("error while reading file chunk: " + err.Error())
+			}
+			content <- data
+		}
 	case "read":
 		log.Println("exec read command")
 	case "chpem":
@@ -82,4 +96,23 @@ func main() {
 	default:
 		fmt.Printf("Usage: \nexecutable <command> <args> [options]")
 	}
+}
+
+func getCmdsCommonData() (*client.Client, string, string) {
+	client := client.NewClient(os.Getenv("server_addr"))
+	cmd := exec.Command("whoami")
+	out, err := cmd.Output()
+	if err != nil {
+		panic("error while getting username: " + err.Error())
+	}
+	username := string(out)
+	username = strings.Replace(username, "\n", "", -1)
+	cmd = exec.Command("hostname")
+	out, err = cmd.Output()
+	if err != nil {
+		panic("error while getting hostname: " + err.Error())
+	}
+	hostname := string(out)
+	hostname = strings.Replace(hostname, "\n", "", -1)
+	return client, username, hostname
 }
