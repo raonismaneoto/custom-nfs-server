@@ -2,6 +2,7 @@ package api
 
 import (
 	context "context"
+	"encoding/json"
 	"io"
 	"io/fs"
 	"log"
@@ -57,7 +58,15 @@ func (h *Handler) Ping(ctx context.Context, request *Empty) (*Empty, error) {
 
 func (h *Handler) Mount(ctx context.Context, request *MountRequest) (*MountResponse, error) {
 	log.Println("Mount received.")
-	return &MountResponse{}, nil
+	metadata, err := h.s.GetMetaData(request.Id, request.Path)
+	if err != nil {
+		return nil, err
+	}
+	serializedMd, err := json.Marshal(metadata)
+	if err != nil {
+		return nil, err
+	}
+	return &MountResponse{MetaData: serializedMd}, nil
 }
 
 func (h *Handler) UnMount(ctx context.Context, request *UnMountRequest) (*Empty, error) {
