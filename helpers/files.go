@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func ReadFileChunk(id, path string, offset, limit int32) ([]byte, error) {
+func ReadFileChunk(path string, offset, limit int32) ([]byte, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		log.Println("unable to open file %v", path)
