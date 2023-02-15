@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/raonismaneoto/custom-nfs-server/helpers"
 	"github.com/raonismaneoto/custom-nfs-server/nfs-server/models"
 	"golang.org/x/exp/slices"
 )
@@ -48,7 +49,7 @@ func (s *Server) Save(id, path string, content []byte) error {
 	defer fm.Close()
 
 	metadata := models.Metadata{OwnerID: id, Size: float64(len(content)),
-		Dir: len(content) == 0, AllowList: []string{}}
+		Dir: len(content) == 0, AllowList: []string{}, Path: path + MetaFileSuffix}
 
 	byteValue, err := ioutil.ReadAll(fm)
 	if err != nil {
@@ -77,7 +78,6 @@ func (s *Server) Save(id, path string, content []byte) error {
 		return err
 	}
 
-	// TODO: check if it appends the content
 	if _, err := f.Write(content); err != nil {
 		log.Println("unable to write to %v", path)
 	}
@@ -91,37 +91,7 @@ func (s *Server) Read(id, path string, offset, limit int32) ([]byte, error) {
 		return nil, err
 	}
 
-	f, err := os.Open(s.root + path)
-	if err != nil {
-		log.Println("unable to open file %v", path)
-		log.Println(err)
-		return nil, err
-	}
-
-	stat, err := f.Stat()
-
-	if err != nil {
-		log.Println("unable to get file stat")
-		return nil, err
-	}
-
-	if int32(stat.Size()) <= offset {
-		log.Println("the file size is smaller than or equal to the offset")
-		return nil, errors.New("the file size is smaller than or equal to the offset")
-	}
-
-	if int32(stat.Size()) < limit {
-		limit = int32(stat.Size())
-	}
-
-	content := make([]byte, limit)
-
-	if _, err := f.ReadAt(content, int64(offset)); err != nil {
-		log.Println("unable to read file chunck: ", err)
-		return nil, err
-	}
-
-	return content, nil
+	return helpers.ReadFileChunk(s.root+path, offset, limit)
 }
 
 func (s *Server) GetMetaData(id, path string) ([]models.Metadata, error) {
@@ -137,9 +107,12 @@ func (s *Server) GetMetaData(id, path string) ([]models.Metadata, error) {
 		return []models.Metadata{*md}, nil
 	}
 
-	log.Println("it is a dir, going to execute ls")
 	cmd := exec.Command("ls", "/")
-	out, _ := cmd.Output()
+	out, err := cmd.Output()
+	if err != nil {
+		log.Println("error while getting directory content")
+		return nil, err
+	}
 	fileNames := string(out)
 	var mds []models.Metadata
 	for _, fn := range strings.Split(fileNames, "\n") {
@@ -175,6 +148,7 @@ func (s *Server) readMetaData(id, path string) (*models.Metadata, error) {
 	json.Unmarshal(byteValue, &md)
 
 	log.Println("checking for permission")
+	log.Println("id: " + id)
 	if !slices.Contains(md.AllowList, id) {
 		log.Println("The id %v does not have permission to read the file %v", id, path)
 		return nil, errors.New("Permission Denied")

@@ -6,6 +6,7 @@ require golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb
 
 require (
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230215225525-2fe91c635545 // indirect
 	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/sys v0.4.0 // indirect
 	golang.org/x/text v0.6.0 // indirect

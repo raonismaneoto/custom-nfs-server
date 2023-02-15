@@ -5,4 +5,5 @@ type Metadata struct {
 	Size      float64
 	Dir       bool
 	AllowList []string
+	Path      string
 }
