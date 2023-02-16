@@ -50,6 +50,8 @@ func (c *Client) Save(id, path string, content <-chan []byte, proceed chan<- str
 			Path:    path,
 			Content: currContent,
 		}
+		log.Println("content size in client")
+		log.Println(len(req.Content))
 
 		if err := client.Send(&req); err != nil {
 			log.Printf("send error %v", err)
