@@ -29,6 +29,10 @@ func (h *Handler) Save(srv NFSS_SaveServer) error {
 	for {
 		select {
 		case <-ctx.Done():
+			_, err := srv.Recv()
+			if err != io.EOF {
+				log.Println("deu treta")
+			}
 			return ctx.Err()
 		default:
 		}

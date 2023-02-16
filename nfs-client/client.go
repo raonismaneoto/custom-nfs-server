@@ -40,6 +40,8 @@ func (c *Client) Save(id, path string, content <-chan []byte, proceed chan<- str
 		proceed <- "proceed"
 		currContent, ok := <-content
 		if !ok {
+			close(proceed)
+			ctx.Done()
 			return nil
 		}
 

@@ -4,6 +4,10 @@ github.com/golang/protobuf v1.5.2/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiu
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230215225525-2fe91c635545 h1:O8nHkcJ+qkhSf8Ua0D4A7gWWKMS4wkjvyu9k7fCbDuI=
 github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230215225525-2fe91c635545/go.mod h1:yom6wPciI4HWmux3Buc4oC09eki8L2sWVFtmsNksrxs=
+github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230215232457-9f4c3f096f62 h1:AeuzaRzBfYjK1tikzD2ZRRVZrgWNFJG9zHnmCRCN1z4=
+github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230215232457-9f4c3f096f62/go.mod h1:yom6wPciI4HWmux3Buc4oC09eki8L2sWVFtmsNksrxs=
+github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230216114952-357e4d54a88d h1:R7nXHtnrN9SbQ7efU3+G/3tHQtB8IPV3E33v2KRLhL8=
+github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230216114952-357e4d54a88d/go.mod h1:yom6wPciI4HWmux3Buc4oC09eki8L2sWVFtmsNksrxs=
 github.com/raonismaneoto/custom-nfs-server/nfs-client v0.0.0-20230215132254-4ea9e8ddb937 h1:TLnNGcs0eDx8jhOrZo8KMxUlcnCUEjWfD/BVaxG1n4w=
 github.com/raonismaneoto/custom-nfs-server/nfs-client v0.0.0-20230215132254-4ea9e8ddb937/go.mod h1:nQxhMOb7SHoEVXczC060AfzFFOlFFx8a5QW1tpZ7QeE=
 github.com/raonismaneoto/custom-nfs-server/nfs-client v0.0.0-20230215190024-57dbd7452c36 h1:A6L5wTcXNJIrd6u7oxKiLybQbCIsWgTEnNRd+stObxE=

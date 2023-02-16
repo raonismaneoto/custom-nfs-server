@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -9,7 +10,6 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/raonismaneoto/custom-nfs-server/helpers"
 	"github.com/raonismaneoto/custom-nfs-server/nfs-cli/models"
 	client "github.com/raonismaneoto/custom-nfs-server/nfs-client"
 )
@@ -63,7 +63,7 @@ func main() {
 		}
 	case "save":
 		log.Println("exec save command")
-		if len(args) != 2 {
+		if len(args) != 3 {
 			panic("Usage: save <absolute_origin> <destination>")
 		}
 		content := make(chan []byte)
@@ -81,14 +81,20 @@ func main() {
 			panic("unable to get file stat")
 		}
 		chuncks := int32(math.Ceil(float64(stat.Size()) / float64(MaxBytesPerRequest)))
+		log.Println(stat.Size())
+		log.Println(chuncks)
+		sizeSent := 0
 		for i := int32(0); i < chuncks; i++ {
 			<-proceed
-			data, err := helpers.ReadFileChunk(origin, i*MaxBytesPerRequest, MaxBytesPerRequest)
+			data, err := ReadFileChunk2(origin, i*MaxBytesPerRequest, MaxBytesPerRequest)
 			if err != nil {
 				panic("error while reading file chunk: " + err.Error())
 			}
+			sizeSent += len(data)
 			content <- data
 		}
+		<-proceed
+		close(content)
 	case "read":
 		log.Println("exec read command")
 	case "chpem":
@@ -115,4 +121,41 @@ func getCmdsCommonData() (*client.Client, string, string) {
 	hostname := string(out)
 	hostname = strings.Replace(hostname, "\n", "", -1)
 	return client, username, hostname
+}
+
+func ReadFileChunk2(path string, offset, limit int32) ([]byte, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		log.Println("unable to open file %v", path)
+		log.Println(err)
+		return nil, err
+	}
+
+	stat, err := f.Stat()
+
+	if err != nil {
+		log.Println("unable to get file stat")
+		return nil, err
+	}
+
+	if int32(stat.Size()) <= offset {
+		log.Println("the file size is smaller than or equal to the offset")
+		return nil, errors.New("the file size is smaller than or equal to the offset")
+	}
+
+	if (int32(stat.Size()) - offset) < limit {
+		limit = (int32(stat.Size()) - offset)
+	}
+	log.Println("limit : %v", limit)
+	log.Println("size - offset %v ", (int32(stat.Size()) - offset))
+	log.Println("siize %v", stat.Size())
+	log.Println("offset %v", offset)
+	content := make([]byte, limit)
+
+	if _, err := f.ReadAt(content, int64(offset)); err != nil {
+		log.Println("unable to read file chunck: ", err)
+		return nil, err
+	}
+
+	return content, nil
 }
