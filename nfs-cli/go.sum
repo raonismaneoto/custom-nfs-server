@@ -20,6 +20,8 @@ github.com/raonismaneoto/custom-nfs-server/nfs-client v0.0.0-20230216125517-7183
 github.com/raonismaneoto/custom-nfs-server/nfs-client v0.0.0-20230216125517-718319ec623b/go.mod h1:/HtBQGDIT/xN6klW+1oHjBkFO1SfuBeyY4FJI4QytUI=
 github.com/raonismaneoto/custom-nfs-server/nfs-client v0.0.0-20230216205813-1a7b18caac36 h1:68lO2l1j9ls4dhbqWwqOjh2kCFgJYHnWOOypY2/HULk=
 github.com/raonismaneoto/custom-nfs-server/nfs-client v0.0.0-20230216205813-1a7b18caac36/go.mod h1:/HtBQGDIT/xN6klW+1oHjBkFO1SfuBeyY4FJI4QytUI=
+github.com/raonismaneoto/custom-nfs-server/nfs-client v0.0.0-20230216210657-259d6481d48a h1:KKRd66GDMK6rrf/kH8HDm/vA6nAVqsIfrlxjGP/Zx4k=
+github.com/raonismaneoto/custom-nfs-server/nfs-client v0.0.0-20230216210657-259d6481d48a/go.mod h1:/HtBQGDIT/xN6klW+1oHjBkFO1SfuBeyY4FJI4QytUI=
 github.com/raonismaneoto/custom-nfs-server/nfs-server v0.0.0-20230215132254-4ea9e8ddb937 h1:ViCcx3ErdjruerrXH85cHfJIPm6YOsoj8IG36IWXedM=
 github.com/raonismaneoto/custom-nfs-server/nfs-server v0.0.0-20230215132254-4ea9e8ddb937/go.mod h1:M0NII+WJ+zaJax8mSsMnmgLu7QmL6Wlu1nR1jUDl1+E=
 golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb h1:PaBZQdo+iSDyHT053FjUCgZQ/9uqVwPOcl7KSWhKn6w=

@@ -91,6 +91,7 @@ func main() {
 		}
 		<-proceed
 		close(content)
+		<-proceed
 	case "read":
 		log.Println("exec read command")
 	case "chpem":

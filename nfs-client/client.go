@@ -41,10 +41,10 @@ func (c *Client) Save(id, path string, content <-chan []byte, proceed chan<- str
 		currContent, ok := <-content
 		if !ok {
 			log.Println("entered not ok")
-			close(proceed)
 			if _, err := client.CloseAndRecv(); err != nil {
 				return err
 			}
+			close(proceed)
 			return nil
 		}
 
