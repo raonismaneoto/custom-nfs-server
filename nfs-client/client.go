@@ -41,7 +41,7 @@ func (c *Client) Save(id, path string, content <-chan []byte, proceed chan<- str
 		currContent, ok := <-content
 		if !ok {
 			close(proceed)
-			if err := client.CloseSend(); err != nil {
+			if _, err := client.CloseAndRecv(); err != nil {
 				return err
 			}
 			return nil

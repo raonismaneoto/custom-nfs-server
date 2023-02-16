@@ -25,14 +25,9 @@ func New(server *server.Server) *Handler {
 func (h *Handler) Save(srv NFSS_SaveServer) error {
 	log.Println("Save call received.")
 	ctx := srv.Context()
-
 	for {
 		select {
 		case <-ctx.Done():
-			_, err := srv.Recv()
-			if err != io.EOF {
-				log.Println("deu treta")
-			}
 			return ctx.Err()
 		default:
 		}
@@ -40,13 +35,16 @@ func (h *Handler) Save(srv NFSS_SaveServer) error {
 		req, err := srv.Recv()
 		if err == io.EOF {
 			log.Println("exit")
+			if err = srv.SendAndClose(&Empty{}); err != nil {
+				return err
+			}
 			return nil
 		}
 		if err != nil {
 			log.Printf("receive error %v", err)
 			continue
 		}
-
+		log.Println("content size: %v", len(req.Content))
 		err = h.s.Save(req.Id, req.Path, req.Content)
 		if err != nil {
 			log.Printf("received error %v", err)

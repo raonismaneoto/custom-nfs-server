@@ -29,7 +29,6 @@ func ReadFileChunk(path string, offset, limit int32) ([]byte, error) {
 	if (int32(stat.Size()) - offset) < limit {
 		limit = (int32(stat.Size()) - offset)
 	}
-
 	content := make([]byte, limit)
 
 	if _, err := f.ReadAt(content, int64(offset)); err != nil {
