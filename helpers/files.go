@@ -26,8 +26,8 @@ func ReadFileChunk(path string, offset, limit int32) ([]byte, error) {
 		return nil, errors.New("the file size is smaller than or equal to the offset")
 	}
 
-	if int32(stat.Size()) < limit {
-		limit = int32(stat.Size())
+	if (int32(stat.Size()) - offset) < limit {
+		limit = (int32(stat.Size()) - offset)
 	}
 
 	content := make([]byte, limit)
