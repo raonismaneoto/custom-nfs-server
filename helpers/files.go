@@ -13,6 +13,7 @@ func ReadFileChunk(path string, offset, limit int32) ([]byte, error) {
 		log.Println(err)
 		return nil, err
 	}
+	defer f.Close()
 
 	stat, err := f.Stat()
 
