@@ -105,8 +105,6 @@ func (h *Handler) Read(request *ReadRequest, srv NFSS_ReadServer) error {
 			Content: content,
 		}
 
-		log.Println(string(content))
-
 		if err := srv.Send(&resp); err != nil {
 			log.Printf("send error %v", err)
 		}

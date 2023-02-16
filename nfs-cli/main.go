@@ -114,8 +114,9 @@ func main() {
 		content := make(chan []byte)
 		proceed := make(chan string)
 
+		go client.Read(username+"@"+hostname, args[1], content, proceed)
+
 		for {
-			go client.Read(username+"@"+hostname, args[1], content, proceed)
 			proceed <- "proceed"
 
 			currContent, ok := <-content

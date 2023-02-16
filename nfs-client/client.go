@@ -90,7 +90,7 @@ func (c *Client) Read(id, path string, content chan<- []byte, proceed <-chan str
 		}
 		if err != nil {
 			log.Printf("receive error %v", err)
-			continue
+			return err
 		}
 
 		content <- data.Content

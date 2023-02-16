@@ -58,7 +58,11 @@ func (s *Server) Save(id, path string, content []byte) error {
 	}
 
 	if err == nil && len(byteValue) > 0 {
-		json.Unmarshal(byteValue, &metadata)
+		err := json.Unmarshal(byteValue, &metadata)
+		if err != nil {
+			log.Println(err.Error())
+			return err
+		}
 		metadata.Size = metadata.Size + float64(len(content))
 	}
 
