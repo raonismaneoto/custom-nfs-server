@@ -22,7 +22,7 @@ func (c *Client) Save(id, path string, content <-chan []byte, proceed chan<- str
 	lc, conn := grpcClient(c.address)
 	defer conn.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
 	defer cancel()
 
 	client, err := lc.Save(ctx)
@@ -62,11 +62,11 @@ func (c *Client) Save(id, path string, content <-chan []byte, proceed chan<- str
 	}
 }
 
-func (c *Client) Read(id, path string, content chan<- []byte) error {
+func (c *Client) Read(id, path string, content chan<- []byte, proceed <-chan string) error {
 	lc, conn := grpcClient(c.address)
 	defer conn.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
 	defer cancel()
 
 	srv, err := lc.Read(ctx, &api.ReadRequest{Path: path, Id: id})
@@ -82,9 +82,10 @@ func (c *Client) Read(id, path string, content chan<- []byte) error {
 		default:
 		}
 
+		<-proceed
 		data, err := srv.Recv()
 		if err == io.EOF {
-			log.Println("exit")
+			close(content)
 			return nil
 		}
 		if err != nil {

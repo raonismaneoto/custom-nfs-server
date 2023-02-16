@@ -94,6 +94,41 @@ func main() {
 		<-proceed
 	case "read":
 		log.Println("exec read command")
+		if len(args) != 3 {
+			panic("Usage: read <remote_path> <absolute_local_path>")
+		}
+
+		localPath := args[2]
+		_, err := os.Stat(localPath)
+		if err == nil {
+			err := os.Remove(localPath)
+			if err != nil {
+				panic(err.Error())
+			}
+		}
+		f, err := os.OpenFile(localPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			panic("unable to open/create file")
+		}
+
+		content := make(chan []byte)
+		proceed := make(chan string)
+
+		for {
+			go client.Read(username+"@"+hostname, args[1], content, proceed)
+			proceed <- "proceed"
+
+			currContent, ok := <-content
+			if !ok {
+				close(proceed)
+				f.Close()
+				return
+			}
+
+			if _, err := f.Write(currContent); err != nil {
+				log.Println("unable to write to file")
+			}
+		}
 	case "chpem":
 		log.Println("exec chpem command")
 	default:

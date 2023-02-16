@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230216114952-357e4d54a88d // indirect
-	github.com/raonismaneoto/custom-nfs-server/nfs-client v0.0.0-20230216210657-259d6481d48a // indirect
+	github.com/raonismaneoto/custom-nfs-server/nfs-client v0.0.0-20230216211846-0434ba1ba5e3 // indirect
 	github.com/raonismaneoto/custom-nfs-server/nfs-server v0.0.0-20230215132254-4ea9e8ddb937 // indirect
 	golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb // indirect
 	golang.org/x/net v0.5.0 // indirect
