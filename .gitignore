@@ -1,3 +1,4 @@
-api/api.pb.go
-api/api_grpc.pb.go
+nfs-server/api/api.pb.go
+nfs-server/api/api_grpc.pb.go
 .idea
+nfs-cli/nfs
