@@ -53,6 +53,8 @@ github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230216114952-357e4d5
 github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230216114952-357e4d54a88d/go.mod h1:yom6wPciI4HWmux3Buc4oC09eki8L2sWVFtmsNksrxs=
 github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230216224416-23e7922f405e h1:/iutFhoW/8rhN2mCWfOewHCD0vEr3QCbu3+D88J2sPU=
 github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230216224416-23e7922f405e/go.mod h1:yom6wPciI4HWmux3Buc4oC09eki8L2sWVFtmsNksrxs=
+github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230217135606-463a6e78b68e h1:gYN2j1NF0xOYIcmp/URYe2FhKW0SuM85KH0WOZKFgDU=
+github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230217135606-463a6e78b68e/go.mod h1:yom6wPciI4HWmux3Buc4oC09eki8L2sWVFtmsNksrxs=
 github.com/rogpeppe/fastuuid v1.2.0/go.mod h1:jVj6XXZzXRy/MSR5jhDC/2q6DgLz+nrA6LYCDYWNEvQ=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=

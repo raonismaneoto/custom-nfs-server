@@ -2,8 +2,12 @@ github.com/golang/protobuf v1.5.0/go.mod h1:FsONVRAS9T7sI+LIUmWTfcYkHO4aIWwzhcaS
 github.com/golang/protobuf v1.5.2 h1:ROPKBNFfQgOUMifHyP+KYbvpjbdoFNs+aK7DXlji0Tw=
 github.com/golang/protobuf v1.5.2/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
+github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230216224416-23e7922f405e h1:/iutFhoW/8rhN2mCWfOewHCD0vEr3QCbu3+D88J2sPU=
+github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230216224416-23e7922f405e/go.mod h1:yom6wPciI4HWmux3Buc4oC09eki8L2sWVFtmsNksrxs=
 github.com/raonismaneoto/custom-nfs-server/nfs-server v0.0.0-20230215132254-4ea9e8ddb937 h1:ViCcx3ErdjruerrXH85cHfJIPm6YOsoj8IG36IWXedM=
 github.com/raonismaneoto/custom-nfs-server/nfs-server v0.0.0-20230215132254-4ea9e8ddb937/go.mod h1:M0NII+WJ+zaJax8mSsMnmgLu7QmL6Wlu1nR1jUDl1+E=
+github.com/raonismaneoto/custom-nfs-server/nfs-server v0.0.0-20230217135606-463a6e78b68e h1:m5aLMJjEr7pB7o09y6ZuWQC8ZyXXhWzA8/6nXUD4jrA=
+github.com/raonismaneoto/custom-nfs-server/nfs-server v0.0.0-20230217135606-463a6e78b68e/go.mod h1:8xafe11IQs+CkbeLK/Advz65SOdD01CcRqU7aESJOZc=
 golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb h1:PaBZQdo+iSDyHT053FjUCgZQ/9uqVwPOcl7KSWhKn6w=
 golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb/go.mod h1:CxIveKay+FTh1D0yPZemJVgC/95VzuuOLq5Qi4xnoYc=
 golang.org/x/net v0.5.0 h1:GyT4nK/YDHSqa1c4753ouYCDajOYKTja9Xb/OHtgvSw=
