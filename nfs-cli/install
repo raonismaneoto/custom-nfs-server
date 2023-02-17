@@ -1,1 +1,19 @@
 #!/bin/bash
+
+check_dependencies() {
+    go version
+    [ ! "$?" -eq 0 ] && echo "golang is not installed" && exit 1
+}
+
+main() {
+    check_dependencies
+
+    [ ! -d "$HOME/.nfs" ] && mkdir $HOME/.nfs
+    go build -o nfs
+    cp nfs $HOME/.nfs
+    echo "export PATH=$PATH:$HOME/.nfs" >> $HOME/.bashrc
+    source $HOME/.bashrc
+    exit 0
+}
+
+main $@
