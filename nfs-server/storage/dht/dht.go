@@ -1,6 +1,8 @@
 package dht
 
 import (
+	"os"
+
 	Client "github.com/raonismaneoto/CustomDHT/core/client"
 )
 
@@ -12,6 +14,7 @@ type DhtStorage struct {
 func New() DhtStorage {
 	s := DhtStorage{}
 	s.client = *Client.New()
+	s.nodeAddr = os.Getenv("DHT_NODE_ADDR")
 	return s
 }
 
@@ -30,7 +33,7 @@ func (s DhtStorage) Save(id, path string, content <-chan []byte, errors chan<- e
 				return
 			}
 			temp_content <- currContent
-		case err, _ := <-temp_errors:
+		case err := <-temp_errors:
 			close(temp_content)
 			close(errors)
 			if err != nil {
@@ -57,7 +60,7 @@ func (s DhtStorage) Read(id, path string, content chan<- []byte, errors chan<- e
 				return
 			}
 			content <- currContent
-		case err, _ := <-temp_errors:
+		case err := <-temp_errors:
 			close(content)
 			close(errors)
 			if err != nil {
