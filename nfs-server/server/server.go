@@ -21,7 +21,8 @@ type Server struct {
 	storage storage.Storage
 }
 
-func New(root string) *Server {
+func New() *Server {
+	root := os.Getenv("ROOT_FOLDER")
 	if _, err := os.Stat(root); err != nil {
 		os.Mkdir(root, 0777)
 	}

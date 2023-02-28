@@ -4,10 +4,7 @@ import (
 	context "context"
 	"encoding/json"
 	"io"
-	"io/fs"
 	"log"
-	"math"
-	"os"
 
 	"github.com/raonismaneoto/custom-nfs-server/nfs-server/server"
 )
@@ -25,10 +22,23 @@ func New(server *server.Server) *Handler {
 func (h *Handler) Save(srv NFSS_SaveServer) error {
 	log.Println("Save call received.")
 	ctx := srv.Context()
+
+	content := make(chan []byte)
+	errors := make(chan error)
+
+	req, err := srv.Recv()
+	if err != nil {
+		return err
+	}
+	go h.s.Save(req.Id, req.Path, content, errors)
+	content <- req.Content
+
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		case err := <-errors:
+			return err
 		default:
 		}
 
@@ -42,14 +52,10 @@ func (h *Handler) Save(srv NFSS_SaveServer) error {
 		}
 		if err != nil {
 			log.Printf("receive error %v", err)
-			continue
-		}
-		log.Println("content size: %v", len(req.Content))
-		err = h.s.Save(req.Id, req.Path, req.Content)
-		if err != nil {
-			log.Printf("received error %v", err)
 			return err
 		}
+
+		content <- req.Content
 	}
 }
 
@@ -79,38 +85,29 @@ func (h *Handler) UnMount(ctx context.Context, request *UnMountRequest) (*Empty,
 func (h *Handler) Read(request *ReadRequest, srv NFSS_ReadServer) error {
 	ctx := srv.Context()
 
-	var f fs.FileInfo
-	var err error
-	if f, err = os.Stat("/home/raonismaneoto/custom-nfs/" + request.Path); err != nil {
-		log.Println("unable to open the file %v", request.Path)
-		return err
-	}
+	content := make(chan []byte)
+	errors := make(chan error)
 
-	chuncks := int32(math.Ceil(float64(f.Size()) / float64(MaxBytesPerResponse)))
-	log.Println("chunks: ", chuncks)
-	for i := int32(0); i < chuncks; i++ {
+	go h.s.Read(request.Id, request.Path, content, errors)
+	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		default:
-		}
+		case currContent, ok := <-content:
+			if !ok {
+				return nil
+			}
+			resp := ReadResponse{
+				Content: currContent,
+			}
 
-		content, err := h.s.Read(request.Id, request.Path, i*MaxBytesPerResponse, MaxBytesPerResponse)
-		if err != nil {
-			log.Println("error while reading file content: ", err)
+			if err := srv.Send(&resp); err != nil {
+				log.Printf("send error %v", err)
+			}
+		case err := <-errors:
 			return err
 		}
-
-		resp := ReadResponse{
-			Content: content,
-		}
-
-		if err := srv.Send(&resp); err != nil {
-			log.Printf("send error %v", err)
-		}
 	}
-
-	return nil
 }
 
 func (h *Handler) Remove(ctx context.Context, request *RemoveRequest) (*Empty, error) {

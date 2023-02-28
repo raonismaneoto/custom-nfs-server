@@ -18,7 +18,7 @@ func main() {
 	}
 
 	gs := grpc.NewServer()
-	ns := server.New("/home/raonismaneoto/custom-nfs/")
+	ns := server.New()
 	api.RegisterNFSSServer(gs, api.New(ns))
 
 	log.Println("NFSS listening at %v", lis.Addr())
