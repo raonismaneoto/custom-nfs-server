@@ -9,93 +9,105 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/raonismaneoto/custom-nfs-server/helpers"
 	"github.com/raonismaneoto/custom-nfs-server/nfs-server/models"
+	"github.com/raonismaneoto/custom-nfs-server/nfs-server/storage"
 	"golang.org/x/exp/slices"
 )
 
 const MetaFileSuffix string = "meta"
 
 type Server struct {
-	root string
+	root    string
+	storage storage.Storage
 }
 
 func New(root string) *Server {
 	if _, err := os.Stat(root); err != nil {
 		os.Mkdir(root, 0777)
 	}
+	sType := os.Getenv("STORAGE_TYPE")
 	return &Server{
-		root: root,
+		root:    root,
+		storage: storage.New(sType),
 	}
 }
 
-func (s *Server) Save(id, path string, content []byte) error {
+func (s *Server) Save(id, path string, content <-chan []byte, errors chan<- error) {
 	log.Println("Save call received.")
 	log.Println("saving")
-	f, err := os.OpenFile(s.root+path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Println("unable to open/create %v", path)
-		return err
-	}
+	temp_content := make(chan []byte)
+	child_errors := make(chan error)
 
-	defer f.Close()
-
+	// open metadata file
 	fm, err := os.OpenFile(s.root+path+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Println("unable to open/create %v", path+MetaFileSuffix)
-		return err
+		errors <- err
 	}
 
 	defer fm.Close()
 
-	metadata := models.Metadata{OwnerID: id, Size: float64(len(content)),
-		Dir: len(content) == 0, AllowList: []string{}, Path: path + MetaFileSuffix}
+	go s.storage.Save(id, path, temp_content, child_errors)
+	for {
+		select {
+		case currContent, ok := <-content:
+			if !ok {
+				close(temp_content)
+				close(errors)
+				break
+			}
 
-	byteValue, err := ioutil.ReadAll(fm)
-	if err != nil {
-		log.Println(err.Error())
-		// return err
-	}
+			err := s.saveMetaData(id, path, currContent, fm)
+			if err != nil {
+				log.Println(err.Error())
+				errors <- err
+				break
+			}
 
-	if err == nil && len(byteValue) > 0 {
-		err := json.Unmarshal(byteValue, &metadata)
-		if err != nil {
-			log.Println(err.Error())
-			return err
+			temp_content <- currContent
+		case err, _ := <-child_errors:
+			if err != nil {
+				errors <- err
+			}
+			close(temp_content)
+			close(errors)
+			break
 		}
-		metadata.Size = metadata.Size + float64(len(content))
+
 	}
-
-	if id == metadata.OwnerID && !slices.Contains(metadata.AllowList, id) {
-		metadata.AllowList = append(metadata.AllowList, id)
-	}
-
-	mMd, err := json.Marshal(metadata)
-
-	if err != nil {
-		log.Println(err.Error())
-		return err
-	}
-
-	if _, err := fm.Write(mMd); err != nil {
-		log.Println("unable to write to %v", path+MetaFileSuffix)
-		return err
-	}
-
-	if _, err := f.Write(content); err != nil {
-		log.Println("unable to write to %v", path)
-	}
-
-	return err
 }
 
-func (s *Server) Read(id, path string, offset, limit int32) ([]byte, error) {
+func (s *Server) Read(id, path string, content chan []byte, errors chan error) {
 	//check if id is allowed to access its content
 	if _, err := s.readMetaData(id, path); err != nil {
-		return nil, err
+		errors <- err
+		close(errors)
+		close(content)
+		return
 	}
 
-	return helpers.ReadFileChunk(s.root+path, offset, limit)
+	temp_content := make(chan []byte)
+	child_errors := make(chan error)
+
+	go s.storage.Read(id, path, temp_content, child_errors)
+	for {
+		select {
+		case currContent, ok := <-temp_content:
+			if !ok {
+				close(content)
+				close(errors)
+				return
+			}
+			content <- currContent
+		case err, _ := <-child_errors:
+			if err != nil {
+				errors <- err
+			}
+			close(content)
+			close(errors)
+			return
+		}
+	}
 }
 
 func (s *Server) GetMetaData(id, path string) ([]models.Metadata, error) {
@@ -159,4 +171,40 @@ func (s *Server) readMetaData(id, path string) (*models.Metadata, error) {
 	}
 
 	return md, nil
+}
+
+func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) error {
+	metadata := models.Metadata{OwnerID: id, Size: float64(len(content)),
+		Dir: len(content) == 0, AllowList: []string{}, Path: path + MetaFileSuffix}
+
+	byteValue, err := ioutil.ReadAll(fm)
+
+	if err == nil && len(byteValue) > 0 {
+		err := json.Unmarshal(byteValue, &metadata)
+		if err != nil {
+			log.Println(err.Error())
+			return err
+		}
+		metadata.Size = metadata.Size + float64(len(content))
+	}
+
+	if id == metadata.OwnerID && !slices.Contains(metadata.AllowList, id) {
+		metadata.AllowList = append(metadata.AllowList, id)
+	} else if id != metadata.OwnerID && !slices.Contains(metadata.AllowList, id) {
+		return errors.New("the user does not have permission to do such operation")
+	}
+
+	mMd, err := json.Marshal(metadata)
+
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
+	if _, err := fm.Write(mMd); err != nil {
+		log.Println("unable to write to %v", path+MetaFileSuffix)
+		return err
+	}
+
+	return nil
 }
