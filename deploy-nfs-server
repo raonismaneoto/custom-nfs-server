@@ -11,9 +11,14 @@ usage() {
     echo "-e env file"
 }
 
+cleanup() {
+    rm -rf temp.env
+}
+
 run() {
     IMAGE=nfs-server:latest
     sudo docker build --no-cache --build-arg PORT_ARG=$1 -f server.Dockerfile -t raonismaneoto/$IMAGE .
+    [ ! "$?" -eq 0 ] && exit 1
     env=$2
     sudo docker run --name nfs-server -p $1:$1 --env-file $env -idt raonismaneoto/$IMAGE
 }
@@ -32,7 +37,6 @@ check_dependencies() {
 }
 
 main() {
-    [ ! "$#" -eq 4 ] && usage && exit 1
     check_dependencies
 
     storage_type=
@@ -67,6 +71,8 @@ main() {
     [ "$env_file" == "" ] && gen_env_file $storage_type $root_folder $port $dht_node_addr && run $port "temp.env" && exit 0
     port=$(grep ^PORT $env_file | awk -F "=" '{print $2}')
     run $port $env_file
+
+    cleanup
     exit 0
 }
 

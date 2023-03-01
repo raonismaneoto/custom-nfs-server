@@ -1,8 +1,10 @@
 FROM golang:1.18 AS builder
 
-WORKDIR /go/src/
+WORKDIR /go/src/nfs
 
-COPY ../nfs-server ./
+COPY ./nfs-server ./
+
+WORKDIR /go/src/nfs
 
 RUN go install -v
 
@@ -18,4 +20,4 @@ WORKDIR /usr/local/bin
 
 EXPOSE $PORT_ARG
 
-CMD ("main")
+CMD ("nfs-server")
