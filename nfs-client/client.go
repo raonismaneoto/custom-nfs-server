@@ -11,7 +11,8 @@ import (
 )
 
 type Client struct {
-	address string
+	address    string
+	connection *grpc.ClientConn
 }
 
 func NewClient(address string) *Client {
@@ -19,8 +20,7 @@ func NewClient(address string) *Client {
 }
 
 func (c *Client) Save(id, path string, content <-chan []byte, proceed chan<- string) error {
-	lc, conn := grpcClient(c.address)
-	defer conn.Close()
+	lc := c.getGrpcClient()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
 	defer cancel()
@@ -63,8 +63,7 @@ func (c *Client) Save(id, path string, content <-chan []byte, proceed chan<- str
 }
 
 func (c *Client) Read(id, path string, content chan<- []byte, proceed <-chan string) error {
-	lc, conn := grpcClient(c.address)
-	defer conn.Close()
+	lc := c.getGrpcClient()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
 	defer cancel()
@@ -98,8 +97,7 @@ func (c *Client) Read(id, path string, content chan<- []byte, proceed <-chan str
 }
 
 func (c *Client) Mount(id, path string) ([]byte, error) {
-	lc, conn := grpcClient(c.address)
-	defer conn.Close()
+	lc := c.getGrpcClient()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
@@ -113,13 +111,15 @@ func (c *Client) Mount(id, path string) ([]byte, error) {
 	return response.MetaData, nil
 }
 
-func grpcClient(address string) (api.NFSSClient, *grpc.ClientConn) {
-	log.Println("Starting grpc connection")
-	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
-	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+func (c *Client) getGrpcClient() api.NFSSClient {
+	if c.connection == nil {
+		log.Println("Starting grpc connection")
+		conn, err := grpc.Dial(c.address, grpc.WithInsecure(), grpc.WithBlock())
+		if err != nil {
+			log.Fatalf("did not connect: %v", err)
+		}
+		c.connection = conn
 	}
 
-	log.Println("Grpc connection started.")
-	return api.NewNFSSClient(conn), conn
+	return api.NewNFSSClient(c.connection)
 }
