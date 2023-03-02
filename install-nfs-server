@@ -1,0 +1,84 @@
+#!/bin/bash
+
+usage() {
+    echo "Usage:"
+    echo "bash deploy-nfs-server [OPTIONS]"
+    echo "OPTIONS:"
+    echo "-s STORAGE_TYPE"
+    echo "-r ROOT_FOLDER"
+    echo "-p PORT"
+    echo "-n DHT_NODE_ADDR"
+    echo "-e env file"
+}
+
+cleanup() {
+    rm -rf temp.env
+}
+
+run() {
+    IMAGE=nfs-server:latest
+    sudo docker build --no-cache --build-arg PORT_ARG=$1 -f server.Dockerfile -t raonismaneoto/$IMAGE .
+    [ ! "$?" -eq 0 ] && exit 1
+    env=$2
+    sudo docker run --name nfs-server -p $1:$1 --env-file $env -idt raonismaneoto/$IMAGE
+}
+
+gen_env_file() {
+    touch temp.env
+    echo "STORAGE_TYPE=${1}" >> temp.env
+    echo "ROOT_FOLDER=${2}" >> temp.env
+    echo "PORT=${3}" >> temp.env
+    echo "DHT_NODE_ADDR=${4}" >> temp.env
+}
+
+check_dependencies() {
+    sudo docker --version
+    [ ! "$?" -eq 0 ] && echo "docker is not installed" && exit 1
+}
+
+main() {
+    check_dependencies
+
+    storage_type=
+    root_folder=
+    port=
+    dht_node_addr=
+    env_file=
+    through_env_file=
+    while getopts "s:r:p:n:e:f" options; do
+        case ${options} in
+            s)
+                storage_type=${OPTARG}
+                ;;
+            r)
+                root_folder=${OPTARG}
+                ;;
+            p)
+                port=${OPTARG}
+                ;;
+            n)
+                dht_node_addr=${OPTARG}
+                ;;
+            e)
+                env_file=${OPTARG}
+                ;;
+            f)
+                through_env_file="true"
+                ;;
+            *)
+                usage
+                exit 1
+                ;;
+        esac
+    done
+
+    [ "$through_env_file" == "true" ] && [ "$env_file" == "" ] && env_file=".env"
+    [ "$env_file" == "" ] && gen_env_file $storage_type $root_folder $port $dht_node_addr && run $port "temp.env" && exit 0
+    port=$(grep ^PORT $env_file | awk -F "=" '{print $2}')
+    run $port $env_file
+
+    cleanup
+    exit 0
+}
+
+main $@

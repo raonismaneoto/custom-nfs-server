@@ -1,0 +1,20 @@
+#!/bin/bash
+
+main() {
+    readonly conf_file="./deploy-nfs.conf"
+    readonly repo_path=$(grep ^repo_path $conf_file | awk -F "=" '{print $2}')
+    readonly remote_machine_addr=$(grep ^remote_machine_address $conf_file | awk -F "=" '{print $2}')
+    readonly priv_key_path=$(grep ^priv_key_path $conf_file | awk -F "=" '{print $2}')
+    readonly user=$(grep ^user $conf_file | awk -F "=" '{print $2}')
+
+    scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r -i $priv_key_path $repo_path $user@$remote_machine_addr:/home/$user
+    errCode=$?
+    [ ! "$errCode" == 0 ] && echo "unable to exec remote copy, errCode: $errCode" && exit $errCode
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i $priv_key_path $user@$remote_machine_addr "cd /home/$user/custom-nfs-server && bash install-nfs-server -f"
+    errCode=$?
+    [ ! "$errCode" == 0 ] && echo "unable to exec remote install, errCode: $errCode" && exit $errCode
+
+    exit 0
+}
+
+main $@
