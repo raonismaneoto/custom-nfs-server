@@ -7,10 +7,10 @@ main() {
     readonly priv_key_path=$(grep ^priv_key_path $conf_file | awk -F "=" '{print $2}')
     readonly user=$(grep ^user $conf_file | awk -F "=" '{print $2}')
 
-    scp -i $priv_key_path $repo_path $user@$remote_machine_addr:$HOME
+    scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r -i $priv_key_path $repo_path $user@$remote_machine_addr:/home/$user
     errCode=$?
     [ ! "$errCode" == 0 ] && echo "unable to exec remote copy, errCode: $errCode" && exit $errCode
-    ssh -i $priv_key_path $user@$remote_machine_addr "bash $HOME/custom-nfs-server/install-nfs-server"
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i $priv_key_path $user@$remote_machine_addr "cd /home/$user/custom-nfs-server && bash install-nfs-server -f"
     errCode=$?
     [ ! "$errCode" == 0 ] && echo "unable to exec remote install, errCode: $errCode" && exit $errCode
 

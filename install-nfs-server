@@ -44,7 +44,8 @@ main() {
     port=
     dht_node_addr=
     env_file=
-    while getopts "s:r:p:n:e:" options; do
+    through_env_file=
+    while getopts "s:r:p:n:e:f" options; do
         case ${options} in
             s)
                 storage_type=${OPTARG}
@@ -61,6 +62,9 @@ main() {
             e)
                 env_file=${OPTARG}
                 ;;
+            f)
+                through_env_file="true"
+                ;;
             *)
                 usage
                 exit 1
@@ -68,6 +72,7 @@ main() {
         esac
     done
 
+    [ "$through_env_file" == "true" ] && [ "$env_file" == "" ] && env_file=".env"
     [ "$env_file" == "" ] && gen_env_file $storage_type $root_folder $port $dht_node_addr && run $port "temp.env" && exit 0
     port=$(grep ^PORT $env_file | awk -F "=" '{print $2}')
     run $port $env_file
