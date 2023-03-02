@@ -20,4 +20,4 @@ WORKDIR /usr/local/bin
 
 EXPOSE $PORT_ARG
 
-CMD ("nfs-server")
+CMD ("nfs-server 1>logs 2> output.err")
