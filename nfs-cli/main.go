@@ -59,6 +59,16 @@ func main() {
 		commands.ExecRead(localPath, remotePath, cconfig)
 	case "chpem":
 		log.Println("exec chpem command")
+		if len(args) != 4 {
+			panic("Usage: chpem <file_path> <operation> <user>\n Operation: add/rm")
+		}
+
+		path := args[1]
+		operation := args[2]
+		user := args[3]
+		commands.ExecChpem(path, operation, user, cconfig)
+
+		log.Println("Chpem executed successfully")
 	default:
 		fmt.Printf("Usage: nfs <command> <args> [options]")
 	}
