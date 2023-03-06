@@ -115,6 +115,14 @@ func (h *Handler) Remove(ctx context.Context, request *RemoveRequest) (*Empty, e
 	return &Empty{}, nil
 }
 
+func (h *Handler) Chpem(ctx context.Context, request *ChpemRequest) (*Empty, error) {
+	err := h.s.Chpem(request.OwnerId, request.User, request.Path, request.Op)
+	if err != nil {
+		return nil, err
+	}
+	return &Empty{}, nil
+}
+
 func (h *Handler) mustEmbedUnimplementedNFSSServer() {
 
 }

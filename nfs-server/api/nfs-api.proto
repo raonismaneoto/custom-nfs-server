@@ -10,6 +10,7 @@ service NFSS {
   rpc Read (ReadRequest) returns (stream ReadResponse) {}
   rpc Save (stream SaveRequest) returns (Empty) {}
   rpc Remove (RemoveRequest) returns (Empty) {}
+  rpc Chpem (ChpemRequest) returns (Empty) {}
 }
 
 message Empty {
@@ -48,4 +49,11 @@ message SaveRequest {
 message RemoveRequest {
   string id = 1;
   string path = 2;
+}
+
+message ChpemRequest {
+  string ownerId = 1;
+  string path = 2;
+  string user = 3;
+  string op = 4;
 }

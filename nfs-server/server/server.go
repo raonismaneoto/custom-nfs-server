@@ -125,6 +125,26 @@ func (s *Server) GetMetaData(id, path string) ([]models.Metadata, error) {
 	return s.getDirMetadata(md)
 }
 
+func (s *Server) Chpem(ownerId, user, path, op string) error {
+	md, err := s.readMetaData(ownerId, path)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	if op == "add" {
+		if !slices.Contains(md.AllowList, user) {
+			md.AllowList = append(md.AllowList, user)
+		}
+	} else if op == "rm" {
+		idx := slices.Index(md.AllowList, user)
+		if idx != -1 {
+			md.AllowList = slices.Delete(md.AllowList, idx, idx)
+		}
+	}
+
+	return nil
+}
+
 func (s *Server) readMetaData(id, path string) (*models.Metadata, error) {
 	log.Println("opening meta file")
 	fm, err := os.Open(s.root + path + MetaFileSuffix)
