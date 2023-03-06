@@ -195,6 +195,9 @@ func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) erro
 		log.Println(err.Error())
 		return err
 	}
+	if slices.Contains(parentMd.Children, &metadata) {
+		return nil
+	}
 	parentMd.Children = append(parentMd.Children, &metadata)
 	fpm, err := os.Open(s.root + parentPath + MetaFileSuffix)
 	if err != nil {
