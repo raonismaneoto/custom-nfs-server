@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/raonismaneoto/custom-nfs-server/nfs-server/models"
@@ -118,31 +117,12 @@ func (s *Server) GetMetaData(id, path string) ([]models.Metadata, error) {
 		log.Println(err.Error())
 		return nil, err
 	}
-	log.Println("checking dir")
+
 	if !md.Dir {
-		log.Println("not a dir")
 		return []models.Metadata{*md}, nil
 	}
 
-	cmd := exec.Command("ls", "/")
-	out, err := cmd.Output()
-	if err != nil {
-		log.Println("error while getting directory content")
-		return nil, err
-	}
-	fileNames := string(out)
-	var mds []models.Metadata
-	for _, fn := range strings.Split(fileNames, "\n") {
-		if fn != "" {
-			currMd, err := s.readMetaData(id, path+"/"+fn)
-			if err != nil {
-				return nil, err
-			}
-			mds = append(mds, *currMd)
-		}
-	}
-
-	return mds, nil
+	return s.getDirMetadata(md)
 }
 
 func (s *Server) readMetaData(id, path string) (*models.Metadata, error) {
@@ -207,5 +187,53 @@ func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) erro
 		return err
 	}
 
+	// save as child
+	splitString := strings.Split(path, "/")
+	parentPath := strings.Join(splitString[:len(splitString)-1], "/")
+	parentMd, err := s.readMetaData(id, parentPath)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	parentMd.Children = append(parentMd.Children, &metadata)
+	fpm, err := os.Open(s.root + parentPath + MetaFileSuffix)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	mParentMd, err := json.Marshal(metadata)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	if _, err := fpm.Write(mParentMd); err != nil {
+		log.Println("unable to write to %v", path+MetaFileSuffix)
+		return err
+	}
+
 	return nil
+}
+
+func (s *Server) getDirMetadata(md *models.Metadata) ([]models.Metadata, error) {
+	if !md.Dir {
+		return nil, errors.New("the file is not a dir")
+	}
+
+	var mds []models.Metadata
+	mds = append(mds, *md)
+
+	for _, childMd := range md.Children {
+		if childMd.Dir {
+			dirMds, err := s.getDirMetadata(childMd)
+			if err != nil {
+				log.Println("error getting mds recursive. Err: ", err.Error())
+				return nil, err
+			}
+			mds = append(mds, dirMds...)
+		} else {
+			mds = append(mds, *childMd)
+		}
+	}
+
+	return mds, nil
 }

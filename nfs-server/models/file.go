@@ -6,4 +6,5 @@ type Metadata struct {
 	Dir       bool
 	AllowList []string
 	Path      string
+	Children  []*Metadata
 }
