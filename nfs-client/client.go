@@ -111,6 +111,21 @@ func (c *Client) Mount(id, path string) ([]byte, error) {
 	return response.MetaData, nil
 }
 
+func (c *Client) Chpem(ownerId, user, path, op string) error {
+	lc := c.getGrpcClient()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+
+	_, err := lc.Chpem(ctx, &api.ChpemRequest{OwnerId: ownerId, User: user, Path: path, Op: op})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Client) getGrpcClient() api.NFSSClient {
 	if c.connection == nil {
 		log.Println("Starting grpc connection")
