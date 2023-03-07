@@ -28,6 +28,7 @@ type NFSSClient interface {
 	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (NFSS_ReadClient, error)
 	Save(ctx context.Context, opts ...grpc.CallOption) (NFSS_SaveClient, error)
 	Remove(ctx context.Context, in *RemoveRequest, opts ...grpc.CallOption) (*Empty, error)
+	Chpem(ctx context.Context, in *ChpemRequest, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type nFSSClient struct {
@@ -140,6 +141,15 @@ func (c *nFSSClient) Remove(ctx context.Context, in *RemoveRequest, opts ...grpc
 	return out, nil
 }
 
+func (c *nFSSClient) Chpem(ctx context.Context, in *ChpemRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/api.NFSS/Chpem", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NFSSServer is the server API for NFSS service.
 // All implementations should embed UnimplementedNFSSServer
 // for forward compatibility
@@ -150,6 +160,7 @@ type NFSSServer interface {
 	Read(*ReadRequest, NFSS_ReadServer) error
 	Save(NFSS_SaveServer) error
 	Remove(context.Context, *RemoveRequest) (*Empty, error)
+	Chpem(context.Context, *ChpemRequest) (*Empty, error)
 }
 
 // UnimplementedNFSSServer should be embedded to have forward compatible implementations.
@@ -173,6 +184,9 @@ func (UnimplementedNFSSServer) Save(NFSS_SaveServer) error {
 }
 func (UnimplementedNFSSServer) Remove(context.Context, *RemoveRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Remove not implemented")
+}
+func (UnimplementedNFSSServer) Chpem(context.Context, *ChpemRequest) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Chpem not implemented")
 }
 
 // UnsafeNFSSServer may be embedded to opt out of forward compatibility for this service.
@@ -305,6 +319,24 @@ func _NFSS_Remove_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NFSS_Chpem_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChpemRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NFSSServer).Chpem(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.NFSS/Chpem",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NFSSServer).Chpem(ctx, req.(*ChpemRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NFSS_ServiceDesc is the grpc.ServiceDesc for NFSS service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -327,6 +359,10 @@ var NFSS_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Remove",
 			Handler:    _NFSS_Remove_Handler,
+		},
+		{
+			MethodName: "Chpem",
+			Handler:    _NFSS_Chpem_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

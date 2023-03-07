@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/raonismaneoto/custom-nfs-server/nfs-server/models"
@@ -44,6 +43,8 @@ func (s *Server) Save(id, path string, content <-chan []byte, errors chan<- erro
 	if err != nil {
 		log.Println("unable to open/create %v", path+MetaFileSuffix)
 		errors <- err
+		close(errors)
+		close(temp_content)
 	}
 
 	defer fm.Close()
@@ -118,31 +119,44 @@ func (s *Server) GetMetaData(id, path string) ([]models.Metadata, error) {
 		log.Println(err.Error())
 		return nil, err
 	}
-	log.Println("checking dir")
+
 	if !md.Dir {
-		log.Println("not a dir")
 		return []models.Metadata{*md}, nil
 	}
 
-	cmd := exec.Command("ls", "/")
-	out, err := cmd.Output()
+	return s.getDirMetadata(md)
+}
+
+func (s *Server) Chpem(ownerId, user, path, op string) error {
+	md, err := s.readMetaData(ownerId, path)
 	if err != nil {
-		log.Println("error while getting directory content")
-		return nil, err
+		log.Println(err.Error())
+		return err
 	}
-	fileNames := string(out)
-	var mds []models.Metadata
-	for _, fn := range strings.Split(fileNames, "\n") {
-		if fn != "" {
-			currMd, err := s.readMetaData(id, path+"/"+fn)
-			if err != nil {
-				return nil, err
-			}
-			mds = append(mds, *currMd)
+	if op == "add" {
+		if !slices.Contains(md.AllowList, user) {
+			md.AllowList = append(md.AllowList, user)
+		}
+	} else if op == "rm" {
+		idx := slices.Index(md.AllowList, user)
+		if idx != -1 {
+			md.AllowList = slices.Delete(md.AllowList, idx, idx)
 		}
 	}
 
-	return mds, nil
+	fm, err := os.OpenFile(s.root+path+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		log.Println("unable to open/create %v", path+MetaFileSuffix)
+	}
+	defer fm.Close()
+
+	mMd, err := json.Marshal(md)
+	if _, err := fm.Write(mMd); err != nil {
+		log.Println("unable to write to %v", path+MetaFileSuffix)
+		return err
+	}
+
+	return nil
 }
 
 func (s *Server) readMetaData(id, path string) (*models.Metadata, error) {
@@ -207,5 +221,61 @@ func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) erro
 		return err
 	}
 
+	// save as child
+	splitString := strings.Split(s.root+path, "/")
+	parentPath := strings.Join(splitString[:len(splitString)-1], "/") + "/" + MetaFileSuffix
+	log.Println("parent path: ", parentPath)
+	parentMd, err := s.readMetaData(id, "")
+	if err != nil {
+		// create the dir meta file
+		parentMd = &models.Metadata{OwnerID: id, Dir: true, AllowList: []string{}, Path: parentPath}
+		log.Println(err.Error())
+	}
+
+	if slices.Contains(parentMd.Children, &metadata) {
+		return nil
+	}
+	parentMd.Children = append(parentMd.Children, &metadata)
+	mParentMd, err := json.Marshal(parentMd)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	fpm, err := os.OpenFile(parentPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	defer fpm.Close()
+	log.Println("going to wirte to: ", parentPath)
+	if _, err := fpm.Write(mParentMd); err != nil {
+		log.Println("unable to write to %v", path+MetaFileSuffix)
+		return err
+	}
+
 	return nil
+}
+
+func (s *Server) getDirMetadata(md *models.Metadata) ([]models.Metadata, error) {
+	if !md.Dir {
+		return nil, errors.New("the file is not a dir")
+	}
+
+	var mds []models.Metadata
+	mds = append(mds, *md)
+
+	for _, childMd := range md.Children {
+		if childMd.Dir {
+			dirMds, err := s.getDirMetadata(childMd)
+			if err != nil {
+				log.Println("error getting mds recursive. Err: ", err.Error())
+				return nil, err
+			}
+			mds = append(mds, dirMds...)
+		} else {
+			mds = append(mds, *childMd)
+		}
+	}
+
+	return mds, nil
 }
