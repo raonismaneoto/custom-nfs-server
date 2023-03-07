@@ -43,6 +43,8 @@ func (s *Server) Save(id, path string, content <-chan []byte, errors chan<- erro
 	if err != nil {
 		log.Println("unable to open/create %v", path+MetaFileSuffix)
 		errors <- err
+		close(errors)
+		close(temp_content)
 	}
 
 	defer fm.Close()
@@ -142,6 +144,18 @@ func (s *Server) Chpem(ownerId, user, path, op string) error {
 		}
 	}
 
+	fm, err := os.OpenFile(s.root+path+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		log.Println("unable to open/create %v", path+MetaFileSuffix)
+	}
+	defer fm.Close()
+
+	mMd, err := json.Marshal(md)
+	if _, err := fm.Write(mMd); err != nil {
+		log.Println("unable to write to %v", path+MetaFileSuffix)
+		return err
+	}
+
 	return nil
 }
 
@@ -208,27 +222,32 @@ func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) erro
 	}
 
 	// save as child
-	splitString := strings.Split(path, "/")
-	parentPath := strings.Join(splitString[:len(splitString)-1], "/")
-	parentMd, err := s.readMetaData(id, parentPath)
+	splitString := strings.Split(s.root+path, "/")
+	parentPath := strings.Join(splitString[:len(splitString)-1], "/") + "/" + MetaFileSuffix
+	log.Println("parent path: ", parentPath)
+	parentMd, err := s.readMetaData(id, "")
 	if err != nil {
+		// create the dir meta file
+		parentMd = &models.Metadata{OwnerID: id, Dir: true, AllowList: []string{}, Path: parentPath}
 		log.Println(err.Error())
-		return err
 	}
+
 	if slices.Contains(parentMd.Children, &metadata) {
 		return nil
 	}
 	parentMd.Children = append(parentMd.Children, &metadata)
-	fpm, err := os.Open(s.root + parentPath + MetaFileSuffix)
+	mParentMd, err := json.Marshal(parentMd)
 	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
-	mParentMd, err := json.Marshal(metadata)
+	fpm, err := os.OpenFile(parentPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
+	defer fpm.Close()
+	log.Println("going to wirte to: ", parentPath)
 	if _, err := fpm.Write(mParentMd); err != nil {
 		log.Println("unable to write to %v", path+MetaFileSuffix)
 		return err
