@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"log"
 	"math"
 	"os"
 
@@ -21,6 +22,7 @@ func ExecSave(origin, destination string, cconfig models.CommandConfiguration) {
 	if stat.IsDir() {
 		err := cconfig.Client.Save(cconfig.Username+"@"+cconfig.Hostname, destination, []byte{})
 		if err != nil {
+			log.Println(err.Error())
 			panic(err.Error())
 		}
 		return

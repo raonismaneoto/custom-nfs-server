@@ -23,7 +23,7 @@ type Server struct {
 func New() *Server {
 	root := os.Getenv("ROOT_FOLDER")
 	if _, err := os.Stat(root); err != nil {
-		os.Mkdir(root, 0644)
+		os.Mkdir(root, 777)
 	}
 	sType := os.Getenv("STORAGE_TYPE")
 	return &Server{
@@ -164,12 +164,50 @@ func (s *Server) Save(id, path string, content []byte) error {
 }
 
 func (s *Server) Mkdir(id, path string) error {
-	return os.Mkdir(s.root+path, 0644)
+	err := os.Mkdir(s.root+path, 0644)
+	if err != nil {
+		log.Println("unable to create ", s.root+path)
+		return err
+	}
+
+	fm, err := os.OpenFile(s.root+path+"/"+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		log.Println("unable to open/create %v", s.root+path+"/"+MetaFileSuffix)
+		return err
+	}
+
+	err = s.saveMetaData(id, path+"/", []byte{}, fm)
+	if err != nil {
+		log.Println("unable to create meta file")
+		return err
+	}
+
+	return nil
 }
 
 func (s *Server) readMetaData(id, path string) (*models.Metadata, error) {
 	log.Println("opening meta file")
-	fm, err := os.Open(s.root + path + MetaFileSuffix)
+	f, err := os.Open(s.root + path)
+	if err != nil {
+		log.Println("unable to read %v", path)
+		return nil, err
+	}
+
+	defer f.Close()
+
+	stat, err := f.Stat()
+	if err != nil {
+		log.Println("unable to get file stat")
+		return nil, err
+	}
+	var metaPath string
+	if stat.IsDir() {
+		metaPath = s.root + path + "/" + MetaFileSuffix
+	} else {
+		metaPath = s.root + path + MetaFileSuffix
+	}
+
+	fm, err := os.Open(metaPath)
 	if err != nil {
 		log.Println("unable to read %v", path+MetaFileSuffix)
 		return nil, err
@@ -230,10 +268,10 @@ func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) erro
 	}
 
 	// save as child
-	splitString := strings.Split(s.root+path, "/")
-	parentPath := strings.Join(splitString[:len(splitString)-1], "/") + "/" + MetaFileSuffix
+	splitString := strings.Split(path, "/")
+	parentPath := strings.Join(splitString[:len(splitString)-1], "/") + "/"
 	log.Println("parent path: ", parentPath)
-	parentMd, err := s.readMetaData(id, "")
+	parentMd, err := s.readMetaData(id, parentPath)
 	if err != nil {
 		// create the dir meta file
 		parentMd = &models.Metadata{OwnerID: id, Dir: true, AllowList: []string{}, Path: parentPath}
@@ -249,15 +287,15 @@ func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) erro
 		log.Println(err.Error())
 		return err
 	}
-	fpm, err := os.OpenFile(parentPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	fpm, err := os.OpenFile(s.root+parentPath+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
 	defer fpm.Close()
-	log.Println("going to wirte to: ", parentPath)
+	log.Println("going to wirte to: ", s.root+parentPath+MetaFileSuffix)
 	if _, err := fpm.Write(mParentMd); err != nil {
-		log.Println("unable to write to %v", path+MetaFileSuffix)
+		log.Println("unable to write to %v", s.root+parentPath+MetaFileSuffix)
 		return err
 	}
 
