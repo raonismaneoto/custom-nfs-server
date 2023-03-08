@@ -41,7 +41,7 @@ func (c *Client) SaveAsync(id, path string, content <-chan []byte, proceed chan<
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
 	defer cancel()
 
-	client, err := lc.Save(ctx)
+	client, err := lc.SaveAsync(ctx)
 	if err != nil {
 		log.Println(err.Error())
 	}
