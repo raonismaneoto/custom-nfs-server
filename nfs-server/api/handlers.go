@@ -19,7 +19,7 @@ func New(server *server.Server) *Handler {
 	return &Handler{s: server}
 }
 
-func (h *Handler) Save(srv NFSS_SaveServer) error {
+func (h *Handler) SaveAsync(srv NFSS_SaveServer) error {
 	log.Println("Save call received.")
 	ctx := srv.Context()
 
@@ -30,7 +30,7 @@ func (h *Handler) Save(srv NFSS_SaveServer) error {
 	if err != nil {
 		return err
 	}
-	go h.s.Save(req.Id, req.Path, content, errors)
+	go h.s.SaveAsync(req.Id, req.Path, content, errors)
 	content <- req.Content
 
 	for {
@@ -57,6 +57,24 @@ func (h *Handler) Save(srv NFSS_SaveServer) error {
 
 		content <- req.Content
 	}
+}
+
+func (h *Handler) Save(ctx context.Context, request *SaveRequest) (*Empty, error) {
+	if len(request.Content) == 0 {
+		err := h.s.Mkdir(request.Id, request.Path)
+		if err != nil {
+			log.Println(err.Error())
+			return nil, err
+		}
+		return &Empty{}, nil
+	}
+
+	err := h.s.Save(request.Id, request.Path, request.Content)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+	return &Empty{}, nil
 }
 
 func (h *Handler) Ping(ctx context.Context, request *Empty) (*Empty, error) {

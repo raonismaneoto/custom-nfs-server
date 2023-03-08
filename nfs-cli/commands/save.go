@@ -9,9 +9,6 @@ import (
 )
 
 func ExecSave(origin, destination string, cconfig models.CommandConfiguration) {
-	content := make(chan []byte)
-	proceed := make(chan string)
-	go cconfig.Client.Save(cconfig.Username+"@"+cconfig.Hostname, destination, content, proceed)
 	f, err := os.Open(origin)
 	if err != nil {
 		panic("unable to open file")
@@ -21,6 +18,16 @@ func ExecSave(origin, destination string, cconfig models.CommandConfiguration) {
 	if err != nil {
 		panic("unable to get file stat")
 	}
+	if stat.IsDir() {
+		err := cconfig.Client.Save(cconfig.Username+"@"+cconfig.Hostname, destination, []byte{})
+		if err != nil {
+			panic(err.Error())
+		}
+		return
+	}
+	content := make(chan []byte)
+	proceed := make(chan string)
+	go cconfig.Client.SaveAsync(cconfig.Username+"@"+cconfig.Hostname, destination, content, proceed)
 	chuncks := int32(math.Ceil(float64(stat.Size()) / float64(cconfig.MaxBytesPerRequest)))
 	for i := int32(0); i < chuncks; i++ {
 		<-proceed

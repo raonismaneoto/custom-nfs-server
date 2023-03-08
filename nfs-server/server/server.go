@@ -32,7 +32,7 @@ func New() *Server {
 	}
 }
 
-func (s *Server) Save(id, path string, content <-chan []byte, errors chan<- error) {
+func (s *Server) SaveAsync(id, path string, content <-chan []byte, errors chan<- error) {
 	log.Println("Save call received.")
 	log.Println("saving")
 	temp_content := make(chan []byte)
@@ -49,7 +49,7 @@ func (s *Server) Save(id, path string, content <-chan []byte, errors chan<- erro
 
 	defer fm.Close()
 
-	go s.storage.Save(id, path, temp_content, child_errors)
+	go s.storage.SaveAsync(id, path, temp_content, child_errors)
 	for {
 		select {
 		case currContent, ok := <-content:
@@ -157,6 +157,14 @@ func (s *Server) Chpem(ownerId, user, path, op string) error {
 	}
 
 	return nil
+}
+
+func (s *Server) Save(id, path string, content []byte) error {
+	return s.storage.Save(id, path, content)
+}
+
+func (s *Server) Mkdir(id, path string) error {
+	return os.Mkdir(s.root+path, 0644)
 }
 
 func (s *Server) readMetaData(id, path string) (*models.Metadata, error) {

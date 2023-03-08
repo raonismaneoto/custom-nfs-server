@@ -20,7 +20,7 @@ func New(root string) *VanillaStorage {
 	}
 }
 
-func (s VanillaStorage) Save(id, path string, content <-chan []byte, errors chan<- error) {
+func (s VanillaStorage) SaveAsync(id, path string, content <-chan []byte, errors chan<- error) {
 	f, err := os.OpenFile(s.root+path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Println("unable to open/create %v", path)
@@ -64,4 +64,20 @@ func (s VanillaStorage) Read(id, path string, content chan<- []byte, errors chan
 		content <- currContent
 	}
 
+}
+
+func (s VanillaStorage) Save(id, path string, content []byte) error {
+	f, err := os.OpenFile(s.root+path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Println("unable to open/create ", path, err.Error())
+		return err
+	}
+	defer f.Close()
+
+	if _, err := f.Write(content); err != nil {
+		log.Println("unable to write to %v", path)
+		return err
+	}
+
+	return nil
 }
