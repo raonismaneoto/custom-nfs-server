@@ -8,7 +8,7 @@ require github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 
 require (
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/raonismaneoto/CustomDHT v0.0.0-20230227195813-287e75a0cfdf
+	github.com/raonismaneoto/CustomDHT v0.0.0-20230308184533-ed06bd9413b9
 	github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230217135606-463a6e78b68e
 	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/sys v0.4.0 // indirect

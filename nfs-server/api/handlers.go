@@ -19,7 +19,7 @@ func New(server *server.Server) *Handler {
 	return &Handler{s: server}
 }
 
-func (h *Handler) SaveAsync(srv NFSS_SaveServer) error {
+func (h *Handler) SaveAsync(srv NFSS_SaveAsyncServer) error {
 	log.Println("Save call received.")
 	ctx := srv.Context()
 

@@ -55,6 +55,8 @@ github.com/raonismaneoto/CustomDHT v0.0.0-20230225233046-ee7fd7264c80 h1:eqp5U09
 github.com/raonismaneoto/CustomDHT v0.0.0-20230225233046-ee7fd7264c80/go.mod h1:h3CKzHP2IORnqNHs4pwqOX6m1u38o4ZlItJFnQM27Uk=
 github.com/raonismaneoto/CustomDHT v0.0.0-20230227195813-287e75a0cfdf h1:s6F5D1/Hg+/Rr84dMjZ3U9ADPBAtn5kID54jnDCn08A=
 github.com/raonismaneoto/CustomDHT v0.0.0-20230227195813-287e75a0cfdf/go.mod h1:h3CKzHP2IORnqNHs4pwqOX6m1u38o4ZlItJFnQM27Uk=
+github.com/raonismaneoto/CustomDHT v0.0.0-20230308184533-ed06bd9413b9 h1:z3vDvoatBQIIwiQlPX+G0ywaoqXzQC68vydP/zDKKoE=
+github.com/raonismaneoto/CustomDHT v0.0.0-20230308184533-ed06bd9413b9/go.mod h1:h3CKzHP2IORnqNHs4pwqOX6m1u38o4ZlItJFnQM27Uk=
 github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230215225525-2fe91c635545 h1:O8nHkcJ+qkhSf8Ua0D4A7gWWKMS4wkjvyu9k7fCbDuI=
 github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230215225525-2fe91c635545/go.mod h1:yom6wPciI4HWmux3Buc4oC09eki8L2sWVFtmsNksrxs=
 github.com/raonismaneoto/custom-nfs-server/helpers v0.0.0-20230215232457-9f4c3f096f62 h1:AeuzaRzBfYjK1tikzD2ZRRVZrgWNFJG9zHnmCRCN1z4=

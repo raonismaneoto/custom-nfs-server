@@ -23,7 +23,7 @@ type Server struct {
 func New() *Server {
 	root := os.Getenv("ROOT_FOLDER")
 	if _, err := os.Stat(root); err != nil {
-		os.Mkdir(root, 0777)
+		os.Mkdir(root, 0644)
 	}
 	sType := os.Getenv("STORAGE_TYPE")
 	return &Server{
