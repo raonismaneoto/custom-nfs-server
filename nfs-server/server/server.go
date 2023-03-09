@@ -23,7 +23,7 @@ type Server struct {
 func New() *Server {
 	root := os.Getenv("ROOT_FOLDER")
 	if _, err := os.Stat(root); err != nil {
-		os.Mkdir(root, 777)
+		os.Mkdir(root, 0777)
 	}
 	sType := os.Getenv("STORAGE_TYPE")
 	return &Server{
@@ -39,7 +39,7 @@ func (s *Server) SaveAsync(id, path string, content <-chan []byte, errors chan<-
 	child_errors := make(chan error)
 
 	// open metadata file
-	fm, err := os.OpenFile(s.root+path+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	fm, err := os.OpenFile(s.root+path+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
 		log.Println("unable to open/create %v", path+MetaFileSuffix)
 		errors <- err
@@ -124,7 +124,9 @@ func (s *Server) GetMetaData(id, path string) ([]models.Metadata, error) {
 		return []models.Metadata{*md}, nil
 	}
 
-	return s.getDirMetadata(md)
+	resp, err := s.getMetadataRecursively(md)
+	log.Println(resp)
+	return resp, err
 }
 
 func (s *Server) Chpem(ownerId, user, path, op string) error {
@@ -144,7 +146,7 @@ func (s *Server) Chpem(ownerId, user, path, op string) error {
 		}
 	}
 
-	fm, err := os.OpenFile(s.root+path+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	fm, err := os.OpenFile(s.root+path+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
 		log.Println("unable to open/create %v", path+MetaFileSuffix)
 	}
@@ -164,19 +166,19 @@ func (s *Server) Save(id, path string, content []byte) error {
 }
 
 func (s *Server) Mkdir(id, path string) error {
-	err := os.Mkdir(s.root+path, 0644)
+	err := os.Mkdir(s.root+path, 0777)
 	if err != nil {
 		log.Println("unable to create ", s.root+path)
 		return err
 	}
 
-	fm, err := os.OpenFile(s.root+path+"/"+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	fm, err := os.OpenFile(s.root+path+"/"+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
 		log.Println("unable to open/create %v", s.root+path+"/"+MetaFileSuffix)
 		return err
 	}
 
-	err = s.saveMetaData(id, path+"/", []byte{}, fm)
+	err = s.saveMetaData(id, path, []byte{}, fm)
 	if err != nil {
 		log.Println("unable to create meta file")
 		return err
@@ -235,8 +237,15 @@ func (s *Server) readMetaData(id, path string) (*models.Metadata, error) {
 }
 
 func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) error {
+	var metaPath string
+	if len(content) == 0 {
+		metaPath = path + "/" + MetaFileSuffix
+	} else {
+		metaPath = path + MetaFileSuffix
+	}
+
 	metadata := models.Metadata{OwnerID: id, Size: float64(len(content)),
-		Dir: len(content) == 0, AllowList: []string{}, Path: path + MetaFileSuffix}
+		Dir: len(content) == 0, AllowList: []string{}, Path: metaPath}
 
 	byteValue, err := ioutil.ReadAll(fm)
 
@@ -274,7 +283,7 @@ func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) erro
 	parentMd, err := s.readMetaData(id, parentPath)
 	if err != nil {
 		// create the dir meta file
-		parentMd = &models.Metadata{OwnerID: id, Dir: true, AllowList: []string{}, Path: parentPath}
+		parentMd = &models.Metadata{OwnerID: id, Dir: true, AllowList: []string{}, Path: parentPath + MetaFileSuffix}
 		log.Println(err.Error())
 	}
 
@@ -287,7 +296,7 @@ func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) erro
 		log.Println(err.Error())
 		return err
 	}
-	fpm, err := os.OpenFile(s.root+parentPath+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	fpm, err := os.OpenFile(s.root+parentPath+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
 		log.Println(err.Error())
 		return err
@@ -302,17 +311,13 @@ func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) erro
 	return nil
 }
 
-func (s *Server) getDirMetadata(md *models.Metadata) ([]models.Metadata, error) {
-	if !md.Dir {
-		return nil, errors.New("the file is not a dir")
-	}
-
+func (s *Server) getMetadataRecursively(md *models.Metadata) ([]models.Metadata, error) {
 	var mds []models.Metadata
 	mds = append(mds, *md)
 
 	for _, childMd := range md.Children {
 		if childMd.Dir {
-			dirMds, err := s.getDirMetadata(childMd)
+			dirMds, err := s.getMetadataRecursively(childMd)
 			if err != nil {
 				log.Println("error getting mds recursive. Err: ", err.Error())
 				return nil, err
