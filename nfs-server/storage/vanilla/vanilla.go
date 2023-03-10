@@ -16,7 +16,8 @@ type VanillaStorage struct {
 
 func New(root string) *VanillaStorage {
 	return &VanillaStorage{
-		root: root,
+		root:                root,
+		MaxBytesPerResponse: 10000,
 	}
 }
 
@@ -64,7 +65,6 @@ func (s VanillaStorage) Read(id, path string, content chan<- []byte, errors chan
 			close(errors)
 			return
 		}
-
 		content <- currContent
 	}
 	close(content)

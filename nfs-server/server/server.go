@@ -79,7 +79,7 @@ func (s *Server) SaveAsync(id, path string, content <-chan []byte, errors chan<-
 	}
 }
 
-func (s *Server) Read(id, path string, content chan []byte, errors chan error) {
+func (s *Server) Read(id, path string, content chan<- []byte, errors chan<- error) {
 	//check if id is allowed to access its content
 	log.Println("going to read: ", path)
 	if _, err := s.readMetaData(id, path); err != nil {

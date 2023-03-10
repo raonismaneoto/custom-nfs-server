@@ -123,6 +123,7 @@ func (h *Handler) Read(request *ReadRequest, srv NFSS_ReadServer) error {
 				log.Printf("send error %v", err)
 			}
 		case err := <-errors:
+			log.Println(err.Error())
 			return err
 		}
 	}

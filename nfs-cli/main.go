@@ -39,6 +39,7 @@ func main() {
 		path := args[1]
 		absDestPath := args[2]
 		commands.ExecMount(path, absDestPath, cconfig)
+		log.Println("mount executed successfully")
 	case "save":
 		log.Println("exec save command")
 		if len(args) != 3 {
@@ -48,15 +49,16 @@ func main() {
 		origin := args[1]
 		destination := args[2]
 		commands.ExecSave(origin, destination, cconfig)
+		log.Println("save executed successfully")
 	case "read":
 		log.Println("exec read command")
-		if len(args) != 3 {
-			panic("Usage: read <remote_path> <absolute_local_path>")
+		if len(args) != 2 {
+			panic("Usage: read <meta_path>")
 		}
 
-		localPath := args[2]
-		remotePath := args[1]
-		commands.ExecRead(localPath, remotePath, cconfig)
+		metaPath := args[1]
+		commands.ExecRead(metaPath, cconfig)
+		log.Println("read executed successfully")
 	case "chpem":
 		log.Println("exec chpem command")
 		if len(args) != 4 {
@@ -68,7 +70,7 @@ func main() {
 		user := args[3]
 		commands.ExecChpem(path, operation, user, cconfig)
 
-		log.Println("Chpem executed successfully")
+		log.Println("chpem executed successfully")
 	default:
 		fmt.Printf("Usage: nfs <command> <args> [options]")
 	}
