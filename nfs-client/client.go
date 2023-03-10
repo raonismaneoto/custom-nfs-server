@@ -69,8 +69,6 @@ func (c *Client) SaveAsync(id, path string, content <-chan []byte, proceed chan<
 			Path:    path,
 			Content: currContent,
 		}
-		log.Println("content size in client")
-		log.Println(len(req.Content))
 
 		if err := client.Send(&req); err != nil {
 			log.Printf("send error %v", err)
@@ -89,7 +87,6 @@ func (c *Client) Read(id, path string, content chan<- []byte, errors chan<- erro
 		log.Println(err.Error())
 		errors <- err
 		close(errors)
-		close(content)
 		return
 	}
 
@@ -98,7 +95,6 @@ func (c *Client) Read(id, path string, content chan<- []byte, errors chan<- erro
 		case <-srv.Context().Done():
 			errors <- srv.Context().Err()
 			close(errors)
-			close(content)
 			return
 		default:
 		}
@@ -106,14 +102,12 @@ func (c *Client) Read(id, path string, content chan<- []byte, errors chan<- erro
 		data, err := srv.Recv()
 		if err == io.EOF {
 			close(content)
-			close(errors)
 			return
 		}
 		if err != nil {
 			log.Printf("receive error %v", err)
 			errors <- err
 			close(errors)
-			close(content)
 			return
 		}
 
