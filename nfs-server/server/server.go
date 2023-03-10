@@ -188,10 +188,17 @@ func (s *Server) Mkdir(id, path string) error {
 }
 
 func (s *Server) readMetaData(id, path string) (*models.Metadata, error) {
-	log.Println("opening meta file")
-	f, err := os.Open(s.root + path)
+	var filePath string
+	if strings.Contains(path, "meta") {
+		filePath = path[:len(path)-4]
+	} else {
+		filePath = path
+	}
+
+	log.Println("opening file")
+	f, err := os.Open(s.root + filePath)
 	if err != nil {
-		log.Println("unable to read %v", path)
+		log.Println("unable to read %v", filePath)
 		return nil, err
 	}
 
@@ -202,16 +209,17 @@ func (s *Server) readMetaData(id, path string) (*models.Metadata, error) {
 		log.Println("unable to get file stat")
 		return nil, err
 	}
+
 	var metaPath string
 	if stat.IsDir() {
-		metaPath = s.root + path + "/" + MetaFileSuffix
+		metaPath = s.root + filePath + "/" + MetaFileSuffix
 	} else {
-		metaPath = s.root + path + MetaFileSuffix
+		metaPath = s.root + filePath + MetaFileSuffix
 	}
 
 	fm, err := os.Open(metaPath)
 	if err != nil {
-		log.Println("unable to read %v", path+MetaFileSuffix)
+		log.Println("unable to read %v", metaPath)
 		return nil, err
 	}
 
@@ -287,10 +295,10 @@ func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) erro
 		log.Println(err.Error())
 	}
 
-	if slices.Contains(parentMd.Children, &metadata) {
+	if slices.Contains(parentMd.Children, metadata.Path) {
 		return nil
 	}
-	parentMd.Children = append(parentMd.Children, &metadata)
+	parentMd.Children = append(parentMd.Children, metadata.Path)
 	mParentMd, err := json.Marshal(parentMd)
 	if err != nil {
 		log.Println(err.Error())
@@ -315,7 +323,12 @@ func (s *Server) getMetadataRecursively(md *models.Metadata) ([]models.Metadata,
 	var mds []models.Metadata
 	mds = append(mds, *md)
 
-	for _, childMd := range md.Children {
+	for _, childMdPath := range md.Children {
+		childMd, err := s.readMetaData(md.OwnerID, childMdPath)
+		if err != nil {
+			log.Println(err.Error())
+			return nil, err
+		}
 		if childMd.Dir {
 			dirMds, err := s.getMetadataRecursively(childMd)
 			if err != nil {
