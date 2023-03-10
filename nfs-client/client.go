@@ -96,7 +96,10 @@ func (c *Client) Read(id, path string, content chan<- []byte, errors chan<- erro
 	for {
 		select {
 		case <-srv.Context().Done():
-			return srv.Context().Err()
+			errors <- srv.Context().Err()
+			close(errors)
+			close(content)
+			return
 		default:
 		}
 
