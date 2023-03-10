@@ -78,7 +78,7 @@ func (c *Client) SaveAsync(id, path string, content <-chan []byte, proceed chan<
 	}
 }
 
-func (c *Client) Read(id, path string, content chan<- []byte, proceed <-chan string) error {
+func (c *Client) Read(id, path string, content chan<- []byte, errors chan<- error) {
 	lc := c.getGrpcClient()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
@@ -87,7 +87,10 @@ func (c *Client) Read(id, path string, content chan<- []byte, proceed <-chan str
 	srv, err := lc.Read(ctx, &api.ReadRequest{Path: path, Id: id})
 	if err != nil {
 		log.Println(err.Error())
-		return err
+		errors <- err
+		close(errors)
+		close(content)
+		return
 	}
 
 	for {
@@ -97,15 +100,18 @@ func (c *Client) Read(id, path string, content chan<- []byte, proceed <-chan str
 		default:
 		}
 
-		<-proceed
 		data, err := srv.Recv()
 		if err == io.EOF {
 			close(content)
-			return nil
+			close(errors)
+			return
 		}
 		if err != nil {
 			log.Printf("receive error %v", err)
-			return err
+			errors <- err
+			close(errors)
+			close(content)
+			return
 		}
 
 		content <- data.Content
