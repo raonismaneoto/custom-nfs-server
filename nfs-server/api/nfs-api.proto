@@ -8,7 +8,8 @@ service NFSS {
   rpc Mount (MountRequest) returns (MountResponse) {}
   rpc UnMount (UnMountRequest) returns (Empty) {}
   rpc Read (ReadRequest) returns (stream ReadResponse) {}
-  rpc Save (stream SaveRequest) returns (Empty) {}
+  rpc SaveAsync (stream SaveRequest) returns (Empty) {}
+  rpc Save (SaveRequest) returns (Empty) {}
   rpc Remove (RemoveRequest) returns (Empty) {}
   rpc Chpem (ChpemRequest) returns (Empty) {}
 }

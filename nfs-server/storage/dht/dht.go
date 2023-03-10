@@ -18,7 +18,7 @@ func New() DhtStorage {
 	return s
 }
 
-func (s DhtStorage) Save(id, path string, content <-chan []byte, errors chan<- error) {
+func (s DhtStorage) SaveAsync(id, path string, content <-chan []byte, errors chan<- error) {
 	temp_content := make(chan []byte)
 	temp_errors := make(chan error)
 
@@ -70,4 +70,9 @@ func (s DhtStorage) Read(id, path string, content chan<- []byte, errors chan<- e
 		}
 
 	}
+}
+
+func (s DhtStorage) Save(id, path string, content []byte) error {
+	_, err := s.client.SaveWithStrKey(s.nodeAddr, path, content)
+	return err
 }

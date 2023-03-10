@@ -26,7 +26,8 @@ type NFSSClient interface {
 	Mount(ctx context.Context, in *MountRequest, opts ...grpc.CallOption) (*MountResponse, error)
 	UnMount(ctx context.Context, in *UnMountRequest, opts ...grpc.CallOption) (*Empty, error)
 	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (NFSS_ReadClient, error)
-	Save(ctx context.Context, opts ...grpc.CallOption) (NFSS_SaveClient, error)
+	SaveAsync(ctx context.Context, opts ...grpc.CallOption) (NFSS_SaveAsyncClient, error)
+	Save(ctx context.Context, in *SaveRequest, opts ...grpc.CallOption) (*Empty, error)
 	Remove(ctx context.Context, in *RemoveRequest, opts ...grpc.CallOption) (*Empty, error)
 	Chpem(ctx context.Context, in *ChpemRequest, opts ...grpc.CallOption) (*Empty, error)
 }
@@ -98,30 +99,30 @@ func (x *nFSSReadClient) Recv() (*ReadResponse, error) {
 	return m, nil
 }
 
-func (c *nFSSClient) Save(ctx context.Context, opts ...grpc.CallOption) (NFSS_SaveClient, error) {
-	stream, err := c.cc.NewStream(ctx, &NFSS_ServiceDesc.Streams[1], "/api.NFSS/Save", opts...)
+func (c *nFSSClient) SaveAsync(ctx context.Context, opts ...grpc.CallOption) (NFSS_SaveAsyncClient, error) {
+	stream, err := c.cc.NewStream(ctx, &NFSS_ServiceDesc.Streams[1], "/api.NFSS/SaveAsync", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &nFSSSaveClient{stream}
+	x := &nFSSSaveAsyncClient{stream}
 	return x, nil
 }
 
-type NFSS_SaveClient interface {
+type NFSS_SaveAsyncClient interface {
 	Send(*SaveRequest) error
 	CloseAndRecv() (*Empty, error)
 	grpc.ClientStream
 }
 
-type nFSSSaveClient struct {
+type nFSSSaveAsyncClient struct {
 	grpc.ClientStream
 }
 
-func (x *nFSSSaveClient) Send(m *SaveRequest) error {
+func (x *nFSSSaveAsyncClient) Send(m *SaveRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *nFSSSaveClient) CloseAndRecv() (*Empty, error) {
+func (x *nFSSSaveAsyncClient) CloseAndRecv() (*Empty, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
@@ -130,6 +131,15 @@ func (x *nFSSSaveClient) CloseAndRecv() (*Empty, error) {
 		return nil, err
 	}
 	return m, nil
+}
+
+func (c *nFSSClient) Save(ctx context.Context, in *SaveRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/api.NFSS/Save", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *nFSSClient) Remove(ctx context.Context, in *RemoveRequest, opts ...grpc.CallOption) (*Empty, error) {
@@ -158,7 +168,8 @@ type NFSSServer interface {
 	Mount(context.Context, *MountRequest) (*MountResponse, error)
 	UnMount(context.Context, *UnMountRequest) (*Empty, error)
 	Read(*ReadRequest, NFSS_ReadServer) error
-	Save(NFSS_SaveServer) error
+	SaveAsync(NFSS_SaveAsyncServer) error
+	Save(context.Context, *SaveRequest) (*Empty, error)
 	Remove(context.Context, *RemoveRequest) (*Empty, error)
 	Chpem(context.Context, *ChpemRequest) (*Empty, error)
 }
@@ -179,8 +190,11 @@ func (UnimplementedNFSSServer) UnMount(context.Context, *UnMountRequest) (*Empty
 func (UnimplementedNFSSServer) Read(*ReadRequest, NFSS_ReadServer) error {
 	return status.Errorf(codes.Unimplemented, "method Read not implemented")
 }
-func (UnimplementedNFSSServer) Save(NFSS_SaveServer) error {
-	return status.Errorf(codes.Unimplemented, "method Save not implemented")
+func (UnimplementedNFSSServer) SaveAsync(NFSS_SaveAsyncServer) error {
+	return status.Errorf(codes.Unimplemented, "method SaveAsync not implemented")
+}
+func (UnimplementedNFSSServer) Save(context.Context, *SaveRequest) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Save not implemented")
 }
 func (UnimplementedNFSSServer) Remove(context.Context, *RemoveRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Remove not implemented")
@@ -275,30 +289,48 @@ func (x *nFSSReadServer) Send(m *ReadResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _NFSS_Save_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(NFSSServer).Save(&nFSSSaveServer{stream})
+func _NFSS_SaveAsync_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(NFSSServer).SaveAsync(&nFSSSaveAsyncServer{stream})
 }
 
-type NFSS_SaveServer interface {
+type NFSS_SaveAsyncServer interface {
 	SendAndClose(*Empty) error
 	Recv() (*SaveRequest, error)
 	grpc.ServerStream
 }
 
-type nFSSSaveServer struct {
+type nFSSSaveAsyncServer struct {
 	grpc.ServerStream
 }
 
-func (x *nFSSSaveServer) SendAndClose(m *Empty) error {
+func (x *nFSSSaveAsyncServer) SendAndClose(m *Empty) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *nFSSSaveServer) Recv() (*SaveRequest, error) {
+func (x *nFSSSaveAsyncServer) Recv() (*SaveRequest, error) {
 	m := new(SaveRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
+}
+
+func _NFSS_Save_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SaveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NFSSServer).Save(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.NFSS/Save",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NFSSServer).Save(ctx, req.(*SaveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _NFSS_Remove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -357,6 +389,10 @@ var NFSS_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _NFSS_UnMount_Handler,
 		},
 		{
+			MethodName: "Save",
+			Handler:    _NFSS_Save_Handler,
+		},
+		{
 			MethodName: "Remove",
 			Handler:    _NFSS_Remove_Handler,
 		},
@@ -372,8 +408,8 @@ var NFSS_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "Save",
-			Handler:       _NFSS_Save_Handler,
+			StreamName:    "SaveAsync",
+			Handler:       _NFSS_SaveAsync_Handler,
 			ClientStreams: true,
 		},
 	},

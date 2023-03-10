@@ -8,7 +8,8 @@ import (
 )
 
 type Storage interface {
-	Save(id, path string, content <-chan []byte, errors chan<- error)
+	SaveAsync(id, path string, content <-chan []byte, errors chan<- error)
+	Save(id, path string, content []byte) error
 	Read(id, path string, content chan<- []byte, errors chan<- error)
 }
 

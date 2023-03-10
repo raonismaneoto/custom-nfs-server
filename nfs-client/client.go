@@ -19,13 +19,29 @@ func NewClient(address string) *Client {
 	return &Client{address: address}
 }
 
-func (c *Client) Save(id, path string, content <-chan []byte, proceed chan<- string) error {
+func (c *Client) Save(id, path string, content []byte) error {
+	lc := c.getGrpcClient()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+
+	req := api.SaveRequest{
+		Id:      id,
+		Path:    path,
+		Content: content,
+	}
+	_, err := lc.Save(ctx, &req)
+
+	return err
+}
+
+func (c *Client) SaveAsync(id, path string, content <-chan []byte, proceed chan<- string) error {
 	lc := c.getGrpcClient()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
 	defer cancel()
 
-	client, err := lc.Save(ctx)
+	client, err := lc.SaveAsync(ctx)
 	if err != nil {
 		log.Println(err.Error())
 	}
