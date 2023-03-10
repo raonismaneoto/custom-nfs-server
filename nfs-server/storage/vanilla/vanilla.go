@@ -16,7 +16,8 @@ type VanillaStorage struct {
 
 func New(root string) *VanillaStorage {
 	return &VanillaStorage{
-		root: root,
+		root:                root,
+		MaxBytesPerResponse: 10000,
 	}
 }
 
@@ -51,6 +52,8 @@ func (s VanillaStorage) Read(id, path string, content chan<- []byte, errors chan
 	if f, err = os.Stat(s.root + path); err != nil {
 		log.Println("unable to open the file %v", s.root+path)
 		errors <- err
+		close(errors)
+		return
 	}
 
 	chuncks := int32(math.Ceil(float64(f.Size()) / float64(s.MaxBytesPerResponse)))
@@ -59,11 +62,12 @@ func (s VanillaStorage) Read(id, path string, content chan<- []byte, errors chan
 		if err != nil {
 			log.Println("error while reading file content: ", err)
 			errors <- err
+			close(errors)
+			return
 		}
-
 		content <- currContent
 	}
-
+	close(content)
 }
 
 func (s VanillaStorage) Save(id, path string, content []byte) error {

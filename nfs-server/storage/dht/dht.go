@@ -56,16 +56,14 @@ func (s DhtStorage) Read(id, path string, content chan<- []byte, errors chan<- e
 		case currContent, ok := <-temp_content:
 			if !ok {
 				close(content)
-				close(errors)
 				return
 			}
 			content <- currContent
 		case err := <-temp_errors:
-			close(content)
-			close(errors)
 			if err != nil {
 				errors <- err
 			}
+			close(errors)
 			return
 		}
 

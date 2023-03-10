@@ -69,8 +69,6 @@ func (c *Client) SaveAsync(id, path string, content <-chan []byte, proceed chan<
 			Path:    path,
 			Content: currContent,
 		}
-		log.Println("content size in client")
-		log.Println(len(req.Content))
 
 		if err := client.Send(&req); err != nil {
 			log.Printf("send error %v", err)
@@ -78,7 +76,7 @@ func (c *Client) SaveAsync(id, path string, content <-chan []byte, proceed chan<
 	}
 }
 
-func (c *Client) Read(id, path string, content chan<- []byte, proceed <-chan string) error {
+func (c *Client) Read(id, path string, content chan<- []byte, errors chan<- error) {
 	lc := c.getGrpcClient()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*30)
@@ -87,25 +85,30 @@ func (c *Client) Read(id, path string, content chan<- []byte, proceed <-chan str
 	srv, err := lc.Read(ctx, &api.ReadRequest{Path: path, Id: id})
 	if err != nil {
 		log.Println(err.Error())
-		return err
+		errors <- err
+		close(errors)
+		return
 	}
 
 	for {
 		select {
 		case <-srv.Context().Done():
-			return srv.Context().Err()
+			errors <- srv.Context().Err()
+			close(errors)
+			return
 		default:
 		}
 
-		<-proceed
 		data, err := srv.Recv()
 		if err == io.EOF {
 			close(content)
-			return nil
+			return
 		}
 		if err != nil {
 			log.Printf("receive error %v", err)
-			return err
+			errors <- err
+			close(errors)
+			return
 		}
 
 		content <- data.Content
