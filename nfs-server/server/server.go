@@ -160,7 +160,52 @@ func (s *Server) Chpem(ownerId, user, path, op string) error {
 }
 
 func (s *Server) Save(id, path string, content []byte) error {
+	fm, err := os.OpenFile(s.root+path+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
+	if err != nil {
+		log.Println("unable to open/create %v", path+MetaFileSuffix, err.Error())
+		return err
+	}
+
+	err = s.saveMetaData(id, path, content, fm)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
 	return s.storage.Save(id, path, content)
+}
+
+func (s *Server) Rm(id, path string) error {
+	_, err := s.readMetaData(id, path)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
+	f, err := os.Open(s.root + path)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	var metapath string
+	stat, err := f.Stat()
+	if stat.IsDir() {
+		if path[len(path)-1:] == "/" {
+			metapath = path + MetaFileSuffix
+		} else {
+			metapath = path + "/" + MetaFileSuffix
+		}
+	} else {
+		metapath = path + MetaFileSuffix
+	}
+
+	err = os.RemoveAll(s.root + metapath)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
+	return s.storage.Rm(id, path)
 }
 
 func (s *Server) Mkdir(id, path string) error {

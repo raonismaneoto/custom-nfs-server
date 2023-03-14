@@ -71,6 +71,15 @@ func main() {
 		commands.ExecChpem(path, operation, user, cconfig)
 
 		log.Println("chpem executed successfully")
+	case "rm":
+		log.Println("exec rm command")
+		if len(args) != 2 {
+			panic("Usage: rm <path> \npath can be either a local meta file absolute path or a remote file path")
+		}
+		path := args[1]
+		commands.ExecRm(path, cconfig)
+
+		log.Println("rm executed successfully")
 	default:
 		fmt.Printf("Usage: nfs <command> <args> [options]")
 	}

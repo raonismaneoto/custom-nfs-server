@@ -145,6 +145,21 @@ func (c *Client) Chpem(ownerId, user, path, op string) error {
 	return nil
 }
 
+func (c *Client) Rm(id, path string) error {
+	lc := c.getGrpcClient()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+
+	_, err := lc.Remove(ctx, &api.RemoveRequest{Path: path, Id: id})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Client) getGrpcClient() api.NFSSClient {
 	if c.connection == nil {
 		log.Println("Starting grpc connection")

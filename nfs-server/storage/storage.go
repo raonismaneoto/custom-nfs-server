@@ -11,6 +11,7 @@ type Storage interface {
 	SaveAsync(id, path string, content <-chan []byte, errors chan<- error)
 	Save(id, path string, content []byte) error
 	Read(id, path string, content chan<- []byte, errors chan<- error)
+	Rm(id, path string) error
 }
 
 func New(t string) Storage {

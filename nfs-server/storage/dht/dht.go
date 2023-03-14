@@ -1,6 +1,7 @@
 package dht
 
 import (
+	"log"
 	"os"
 
 	Client "github.com/raonismaneoto/CustomDHT/core/client"
@@ -72,5 +73,14 @@ func (s DhtStorage) Read(id, path string, content chan<- []byte, errors chan<- e
 
 func (s DhtStorage) Save(id, path string, content []byte) error {
 	_, err := s.client.SaveWithStrKey(s.nodeAddr, path, content)
+	return err
+}
+
+func (s DhtStorage) Rm(id, path string) error {
+	_, err := s.client.DeleteWithStrKey(s.nodeAddr, path)
+	if err != nil {
+		log.Println(err)
+	}
+
 	return err
 }

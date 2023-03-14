@@ -1,11 +1,10 @@
 package commands
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"log"
 	"os"
 
+	"github.com/raonismaneoto/custom-nfs-server/nfs-cli/helpers"
 	"github.com/raonismaneoto/custom-nfs-server/nfs-cli/models"
 )
 
@@ -19,7 +18,7 @@ func ExecRead(metaPath string, cconfig models.CommandConfiguration) {
 
 	content := make(chan []byte)
 	errors := make(chan error)
-	remotePath, err := getRemotePath(metaPath)
+	remotePath, err := helpers.GetRemotePath(metaPath)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -44,24 +43,4 @@ func ExecRead(metaPath string, cconfig models.CommandConfiguration) {
 			panic(err.Error())
 		}
 	}
-}
-
-func getRemotePath(metaPath string) (string, error) {
-	f, err := os.Open(metaPath)
-	if err != nil {
-		log.Println("unable to open " + err.Error())
-		return "", err
-	}
-	defer f.Close()
-
-	byteValue, err := ioutil.ReadAll(f)
-	if err != nil {
-		log.Println(err.Error())
-		return "", err
-	}
-
-	var md *models.Metadata
-	json.Unmarshal(byteValue, &md)
-
-	return md.Path[:len(md.Path)-4], nil
 }
