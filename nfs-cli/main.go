@@ -80,6 +80,16 @@ func main() {
 		commands.ExecRm(path, cconfig)
 
 		log.Println("rm executed successfully")
+	case "update":
+		log.Println("exec update command")
+		if len(args) != 2 {
+			panic("Usage: update <local_absolute_mounted_path>\npath cannot point to a directory")
+		}
+
+		path := args[1]
+		commands.ExecUpdate(path, cconfig)
+
+		log.Println("update executed successfully")
 	default:
 		fmt.Printf("Usage: nfs <command> <args> [options]")
 	}

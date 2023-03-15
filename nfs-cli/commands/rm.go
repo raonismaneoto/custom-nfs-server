@@ -16,6 +16,8 @@ func ExecRm(path string, cconfig models.CommandConfiguration) {
 		if err != nil {
 			panic(err.Error())
 		}
+		os.RemoveAll(rmPath[:len(rmPath)-4])
+
 		rmPath, err = helpers.GetRemotePath(path)
 	}
 
