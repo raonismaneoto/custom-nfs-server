@@ -72,6 +72,7 @@ func (c *Client) SaveAsync(id, path string, content <-chan []byte, proceed chan<
 
 		if err := client.Send(&req); err != nil {
 			log.Printf("send error %v", err)
+			return err
 		}
 	}
 }

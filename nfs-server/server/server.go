@@ -38,28 +38,16 @@ func (s *Server) SaveAsync(id, path string, content <-chan []byte, errors chan<-
 	temp_content := make(chan []byte)
 	child_errors := make(chan error)
 
-	// open metadata file
-	fm, err := os.OpenFile(s.root+path+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
-	if err != nil {
-		log.Println("unable to open/create %v", path+MetaFileSuffix)
-		errors <- err
-		close(errors)
-		close(temp_content)
-	}
-
-	defer fm.Close()
-
 	go s.storage.SaveAsync(id, path, temp_content, child_errors)
 	for {
 		select {
 		case currContent, ok := <-content:
 			if !ok {
 				close(temp_content)
-				close(errors)
 				break
 			}
 
-			err := s.saveMetaData(id, path, currContent, fm)
+			err := s.saveMetaData(id, path, currContent)
 			if err != nil {
 				log.Println(err.Error())
 				errors <- err
@@ -71,7 +59,6 @@ func (s *Server) SaveAsync(id, path string, content <-chan []byte, errors chan<-
 			if err != nil {
 				errors <- err
 			}
-			close(temp_content)
 			close(errors)
 			break
 		}
@@ -160,13 +147,7 @@ func (s *Server) Chpem(ownerId, user, path, op string) error {
 }
 
 func (s *Server) Save(id, path string, content []byte) error {
-	fm, err := os.OpenFile(s.root+path+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
-	if err != nil {
-		log.Println("unable to open/create %v", path+MetaFileSuffix, err.Error())
-		return err
-	}
-
-	err = s.saveMetaData(id, path, content, fm)
+	err := s.saveMetaData(id, path, content)
 	if err != nil {
 		log.Println(err.Error())
 		return err
@@ -215,13 +196,7 @@ func (s *Server) Mkdir(id, path string) error {
 		return err
 	}
 
-	fm, err := os.OpenFile(s.root+path+"/"+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
-	if err != nil {
-		log.Println("unable to open/create %v", s.root+path+"/"+MetaFileSuffix)
-		return err
-	}
-
-	err = s.saveMetaData(id, path, []byte{}, fm)
+	err = s.saveMetaData(id, path, []byte{})
 	if err != nil {
 		log.Println("unable to create meta file")
 		return err
@@ -287,7 +262,15 @@ func (s *Server) readMetaData(id, path string) (*models.Metadata, error) {
 	return md, nil
 }
 
-func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) error {
+func (s *Server) saveMetaData(id, path string, content []byte) error {
+	fm, err := os.OpenFile(s.root+path+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
+	if err != nil {
+		log.Println("unable to open/create %v", path+MetaFileSuffix)
+		return err
+	}
+
+	defer fm.Close()
+
 	var metaPath string
 	if len(content) == 0 {
 		metaPath = path + "/" + MetaFileSuffix
@@ -295,9 +278,7 @@ func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) erro
 		metaPath = path + MetaFileSuffix
 	}
 
-	metadata := models.Metadata{OwnerID: id, Size: float64(len(content)),
-		Dir: len(content) == 0, AllowList: []string{}, Path: metaPath}
-
+	var metadata models.Metadata
 	byteValue, err := ioutil.ReadAll(fm)
 
 	if err == nil && len(byteValue) > 0 {
@@ -306,7 +287,13 @@ func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) erro
 			log.Println(err.Error())
 			return err
 		}
+		log.Println("entrei aqui")
 		metadata.Size = metadata.Size + float64(len(content))
+	} else {
+		log.Println("size: ", len(content))
+		metadata = models.Metadata{OwnerID: id, Size: float64(len(content)),
+			Dir: len(content) == 0, AllowList: []string{}, Path: metaPath}
+		log.Println("meta size: ", metadata.Size)
 	}
 
 	if id == metadata.OwnerID && !slices.Contains(metadata.AllowList, id) {
