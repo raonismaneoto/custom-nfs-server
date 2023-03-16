@@ -135,7 +135,12 @@ func (h *Handler) Read(request *ReadRequest, srv NFSS_ReadServer) error {
 }
 
 func (h *Handler) Remove(ctx context.Context, request *RemoveRequest) (*Empty, error) {
-	log.Println("Ping received.")
+	log.Println("Remove received.")
+	err := h.s.Rm(request.Id, request.Path)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
 	return &Empty{}, nil
 }
 
