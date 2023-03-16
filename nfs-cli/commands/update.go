@@ -18,12 +18,15 @@ func ExecUpdate(path string, cconfig models.CommandConfiguration) {
 	if err != nil {
 		panic(err.Error())
 	}
-	ExecRm(path, cconfig)
+	ExecRm(path+"meta", cconfig)
 	ExecSave(path+".tmp", remotePath, cconfig)
 	splitPath := strings.Split(path, "/")
 	pathDir := strings.Join(splitPath[:len(splitPath)-1], "/")
+	if strings.Contains(path, remotePath) {
+		pathDir = strings.Replace(path, remotePath, "", 1)
+	}
 	ExecMount(remotePath, pathDir, cconfig)
-	cmd = exec.Command("cp", path+".tmp", path)
+	cmd = exec.Command("mv", path+".tmp", path)
 	_, err = cmd.Output()
 	if err != nil {
 		panic(err.Error())

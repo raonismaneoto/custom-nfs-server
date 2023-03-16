@@ -12,13 +12,16 @@ func ExecRm(path string, cconfig models.CommandConfiguration) {
 	rmPath := path
 
 	if strings.Contains(path, "meta") {
-		err := os.RemoveAll(rmPath)
+		remotePath, err := helpers.GetRemotePath(path)
+		if err != nil {
+			panic(err.Error())
+		}
+		err = os.RemoveAll(rmPath)
 		if err != nil {
 			panic(err.Error())
 		}
 		os.RemoveAll(rmPath[:len(rmPath)-4])
-
-		rmPath, err = helpers.GetRemotePath(path)
+		rmPath = remotePath
 	}
 
 	err := cconfig.Client.Rm(cconfig.Username+"@"+cconfig.Hostname, rmPath)
