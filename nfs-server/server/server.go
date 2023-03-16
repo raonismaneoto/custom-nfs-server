@@ -38,28 +38,16 @@ func (s *Server) SaveAsync(id, path string, content <-chan []byte, errors chan<-
 	temp_content := make(chan []byte)
 	child_errors := make(chan error)
 
-	// open metadata file
-	fm, err := os.OpenFile(s.root+path+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
-	if err != nil {
-		log.Println("unable to open/create %v", path+MetaFileSuffix)
-		errors <- err
-		close(errors)
-		close(temp_content)
-	}
-
-	defer fm.Close()
-
 	go s.storage.SaveAsync(id, path, temp_content, child_errors)
 	for {
 		select {
 		case currContent, ok := <-content:
 			if !ok {
 				close(temp_content)
-				close(errors)
 				break
 			}
 
-			err := s.saveMetaData(id, path, currContent, fm)
+			err := s.saveMetaData(id, path, currContent)
 			if err != nil {
 				log.Println(err.Error())
 				errors <- err
@@ -71,7 +59,6 @@ func (s *Server) SaveAsync(id, path string, content <-chan []byte, errors chan<-
 			if err != nil {
 				errors <- err
 			}
-			close(temp_content)
 			close(errors)
 			break
 		}
@@ -160,7 +147,71 @@ func (s *Server) Chpem(ownerId, user, path, op string) error {
 }
 
 func (s *Server) Save(id, path string, content []byte) error {
+	err := s.saveMetaData(id, path, content)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
 	return s.storage.Save(id, path, content)
+}
+
+func (s *Server) Rm(id, path string) error {
+	md, err := s.readMetaData(id, path)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
+	f, err := os.Open(s.root + path)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	var metapath string
+	stat, err := f.Stat()
+	if stat.IsDir() {
+		if path[len(path)-1:] == "/" {
+			metapath = path + MetaFileSuffix
+		} else {
+			metapath = path + "/" + MetaFileSuffix
+		}
+	} else {
+		metapath = path + MetaFileSuffix
+	}
+
+	err = os.RemoveAll(s.root + metapath)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
+	splitString := strings.Split(path, "/")
+	parentPath := strings.Join(splitString[:len(splitString)-1], "/") + "/"
+	parentMd, err := s.readMetaData(id, parentPath)
+	idx := slices.Index(parentMd.Children, md.Path)
+	if idx != -1 {
+		parentMd.Children = append(parentMd.Children[:idx], parentMd.Children[idx+1:]...)
+	}
+
+	mParentMd, err := json.Marshal(parentMd)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	fpm, err := os.OpenFile(s.root+parentPath+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	defer fpm.Close()
+
+	if _, err := fpm.Write(mParentMd); err != nil {
+		log.Println("unable to write to ", s.root+parentPath+MetaFileSuffix)
+		return err
+	}
+
+	return s.storage.Rm(id, path)
 }
 
 func (s *Server) Mkdir(id, path string) error {
@@ -170,13 +221,7 @@ func (s *Server) Mkdir(id, path string) error {
 		return err
 	}
 
-	fm, err := os.OpenFile(s.root+path+"/"+MetaFileSuffix, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
-	if err != nil {
-		log.Println("unable to open/create %v", s.root+path+"/"+MetaFileSuffix)
-		return err
-	}
-
-	err = s.saveMetaData(id, path, []byte{}, fm)
+	err = s.saveMetaData(id, path, []byte{})
 	if err != nil {
 		log.Println("unable to create meta file")
 		return err
@@ -242,7 +287,7 @@ func (s *Server) readMetaData(id, path string) (*models.Metadata, error) {
 	return md, nil
 }
 
-func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) error {
+func (s *Server) saveMetaData(id, path string, content []byte) error {
 	var metaPath string
 	if len(content) == 0 {
 		metaPath = path + "/" + MetaFileSuffix
@@ -250,18 +295,14 @@ func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) erro
 		metaPath = path + MetaFileSuffix
 	}
 
-	metadata := models.Metadata{OwnerID: id, Size: float64(len(content)),
-		Dir: len(content) == 0, AllowList: []string{}, Path: metaPath}
-
-	byteValue, err := ioutil.ReadAll(fm)
-
-	if err == nil && len(byteValue) > 0 {
-		err := json.Unmarshal(byteValue, &metadata)
-		if err != nil {
-			log.Println(err.Error())
-			return err
-		}
+	var metadata models.Metadata
+	currMd, err := s.readMetaData(id, metaPath)
+	if err == nil {
+		metadata = *currMd
 		metadata.Size = metadata.Size + float64(len(content))
+	} else {
+		metadata = models.Metadata{OwnerID: id, Size: float64(len(content)),
+			Dir: len(content) == 0, AllowList: []string{}, Path: metaPath}
 	}
 
 	if id == metadata.OwnerID && !slices.Contains(metadata.AllowList, id) {
@@ -277,6 +318,12 @@ func (s *Server) saveMetaData(id, path string, content []byte, fm *os.File) erro
 		return err
 	}
 
+	fm, err := os.OpenFile(s.root+metaPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
+	if err != nil {
+		log.Println("unable to open/create ", metaPath)
+		return err
+	}
+	defer fm.Close()
 	if _, err := fm.Write(mMd); err != nil {
 		log.Println("unable to write to %v", path+MetaFileSuffix)
 		return err

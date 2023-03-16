@@ -2,7 +2,6 @@ package commands
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 	"strings"
 
@@ -19,7 +18,6 @@ func ExecMount(path, absDestPath string, cconfig models.CommandConfiguration) {
 	if err != nil {
 		panic("error unmarshalling mount response. Error: " + err.Error())
 	}
-	log.Println(filesMd)
 
 	for _, fmd := range filesMd {
 		func(currFmd models.Metadata) {

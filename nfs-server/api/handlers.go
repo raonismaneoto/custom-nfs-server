@@ -23,7 +23,7 @@ func (h *Handler) SaveAsync(srv NFSS_SaveAsyncServer) error {
 	log.Println("Save call received.")
 	ctx := srv.Context()
 
-	content := make(chan []byte)
+	content := make(chan []byte, 20)
 	errors := make(chan error)
 
 	req, err := srv.Recv()
@@ -31,13 +31,18 @@ func (h *Handler) SaveAsync(srv NFSS_SaveAsyncServer) error {
 		return err
 	}
 	go h.s.SaveAsync(req.Id, req.Path, content, errors)
+	log.Println("putting content in the channel")
+	log.Println(content)
 	content <- req.Content
-
+	log.Println("content inserted, going to start the loop")
 	for {
+		log.Println("entering the loop")
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case err := <-errors:
+			log.Println("got an error")
+			log.Println(err.Error())
 			return err
 		default:
 		}
@@ -54,7 +59,7 @@ func (h *Handler) SaveAsync(srv NFSS_SaveAsyncServer) error {
 			log.Printf("receive error %v", err)
 			return err
 		}
-
+		log.Println("going to send content in the channel inside loop")
 		content <- req.Content
 	}
 }
@@ -130,7 +135,12 @@ func (h *Handler) Read(request *ReadRequest, srv NFSS_ReadServer) error {
 }
 
 func (h *Handler) Remove(ctx context.Context, request *RemoveRequest) (*Empty, error) {
-	log.Println("Ping received.")
+	log.Println("Remove received.")
+	err := h.s.Rm(request.Id, request.Path)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
 	return &Empty{}, nil
 }
 

@@ -72,6 +72,7 @@ func (c *Client) SaveAsync(id, path string, content <-chan []byte, proceed chan<
 
 		if err := client.Send(&req); err != nil {
 			log.Printf("send error %v", err)
+			return err
 		}
 	}
 }
@@ -137,6 +138,21 @@ func (c *Client) Chpem(ownerId, user, path, op string) error {
 	defer cancel()
 
 	_, err := lc.Chpem(ctx, &api.ChpemRequest{OwnerId: ownerId, User: user, Path: path, Op: op})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) Rm(id, path string) error {
+	lc := c.getGrpcClient()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+
+	_, err := lc.Remove(ctx, &api.RemoveRequest{Path: path, Id: id})
 
 	if err != nil {
 		return err

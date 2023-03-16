@@ -85,3 +85,12 @@ func (s VanillaStorage) Save(id, path string, content []byte) error {
 
 	return nil
 }
+
+func (s VanillaStorage) Rm(id, path string) error {
+	err := os.RemoveAll(s.root + path)
+	if err != nil {
+		log.Println(err)
+	}
+
+	return err
+}
